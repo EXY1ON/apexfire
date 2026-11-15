@@ -7,6 +7,8 @@
 <p align="center"><strong>North Macedonia's fire tracker and fire evidence archive.</strong><br>
 Live satellite fire detections, wind and fire danger for everyone; every detection since 2000, tested sensor harmonization and day-by-day fire case studies for experts.</p>
 
+<p align="center"><a href="https://apexfire.web.app"><strong>Open ApexFire → apexfire.web.app</strong></a></p>
+
 <p align="center">
   <a href="LICENSE"><img alt="Code licence: MIT" src="https://img.shields.io/badge/code-MIT-ff6a00"></a>
   <img alt="NASA Space Apps Challenge 2026" src="https://img.shields.io/badge/NASA%20Space%20Apps-2026-0b3d91">
@@ -114,7 +116,7 @@ The repository includes the generated public data (`web/public/data`, about 19 M
 | --- | --- | --- |
 | `VITE_LIVE_URL` | Realtime Database root for the live detection feed; empty turns it off (saved sample shown, labelled) | the ApexFire database |
 | `VITE_MKFFIS_WMS` | MKFFIS WMS proxy path or URL; empty hides the national layers | `/mkffis/wms` |
-| `VITE_SITE_URL` | Absolute site address for link previews (Open Graph) | `https://firewatch-ff023.web.app` |
+| `VITE_SITE_URL` | Absolute site address for link previews (Open Graph) | `https://apexfire.web.app` |
 
 ### Data pipeline
 
@@ -139,11 +141,12 @@ Project `firewatch-ff023` (the Firebase name predates the ApexFire rename and is
 | --- | --- |
 | `refresh_live` scheduled function + Realtime Database rules | Deployed (europe-west1); clients can read, not write |
 | `mkffis_wms` allowlisting proxy + Hosting rewrite `/mkffis/wms` | Built and emulator-tested, **not deployed** (MKFFIS reuse terms unconfirmed) |
-| Hosting (`web/dist`) | Configured, not yet published |
+| Hosting (`web/dist`, site `apexfire`) | Published at [apexfire.web.app](https://apexfire.web.app), built with `VITE_MKFFIS_WMS=` so the national layers stay off until the proxy is deployed |
 
 ```bash
 tools/go_live.sh                                   # ingestion function + rules (asks first; reads the key privately)
 firebase emulators:start --only hosting,functions  # local check of rewrites and the proxy
+(cd web && VITE_MKFFIS_WMS= npm run build) && firebase deploy --only hosting   # publish the site (functions and rules untouched)
 ```
 
 ## MKFFIS national layers

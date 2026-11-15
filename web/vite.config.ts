@@ -9,7 +9,7 @@ const mkffis = { '/mkffis/wms': { target: 'http://mkffis1.cuk.gov.mk:8080', chan
 const siteUrl = (url: string) => ({ name: 'site-url', transformIndexHtml: (html: string) => html.replaceAll('%SITE_URL%', url.replace(/\/$/, '')) });
 
 export default defineConfig(({ mode }) => ({
-  plugins: [react(), siteUrl(loadEnv(mode, '.', 'VITE_').VITE_SITE_URL || 'https://firewatch-ff023.web.app')],
+  plugins: [react(), siteUrl(loadEnv(mode, '.', 'VITE_').VITE_SITE_URL || 'https://apexfire.web.app')],
   server: { proxy: mkffis },
   preview: { proxy: mkffis },
   build: { outDir: 'dist', emptyOutDir: true, sourcemap: false },
