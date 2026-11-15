@@ -1,0 +1,146 @@
+{
+ "schema": "firewatch.story.fire.selection.v1",
+ "rule": "Officially mapped EFFIS burned areas in North Macedonia (layer ms:modis.ba.poly.<year>, COUNTRY = MK), chosen for size (including the largest of 2016, 2022 and 2023), clear multi-day satellite-detection coverage in the ApexFire archive, and spread over years and regions. Brvenica 2017 and the September 2024 Mariovo/Prilep event (EFFIS 240660) already have stories and are excluded.",
+ "defaults": {
+  "buffer_km": 1.5,
+  "days_before": 2,
+  "max_days": 21,
+  "gap_days": 2
+ },
+ "stories": [
+  {
+   "id": "saraj-2017",
+   "effis_year": 2017,
+   "effis_id": "11439",
+   "title": "Saraj fire, summer 2017",
+   "place": "Saraj, Skopje",
+   "place_mk": "Сарај, Скопје",
+   "municipality": "Saraj",
+   "reason": "Skopje region; burned at the same time as Brvenica, 112 detections over nine days."
+  },
+  {
+   "id": "makedonski-brod-2019",
+   "effis_year": 2019,
+   "effis_id": "17776",
+   "title": "Makedonski Brod fire, September 2019",
+   "place": "Makedonski Brod",
+   "place_mk": "Македонски Брод",
+   "municipality": "Makedonski Brod",
+   "reason": "Largest mapped 2019 fire; south-west forest country, seen by MODIS and both VIIRS satellites (140 detections)."
+  },
+  {
+   "id": "pehcevo-2021",
+   "effis_year": 2021,
+   "effis_id": "52627",
+   "title": "Pehčevo fire, August 2021",
+   "place": "Pehčevo",
+   "place_mk": "Пехчево",
+   "municipality": "Pehčevo",
+   "reason": "Largest fire of the August 2021 heatwave (5,413 ha); eastern mountains, 645 detections.",
+   "context": [
+    {
+     "text": "On 4 August 2021 a squadron of five firefighting helicopters sent to the Pehčevo region was ordered to pull back because of extreme heat; MIA reported the fire spreading from Pehčevo toward Berovo.",
+     "source_label": "MIA (Macedonian Information Agency), 4 Aug 2021",
+     "url": "https://mia.mk/en/story/ten-wildfires-active-nationwide-firefighting-helicopters-ordered-to-retreat-from-pehchevo-region"
+    }
+   ]
+  },
+  {
+   "id": "kumanovo-2021",
+   "effis_year": 2021,
+   "effis_id": "52629",
+   "title": "Kumanovo fire, August 2021",
+   "place": "Kumanovo",
+   "place_mk": "Куманово",
+   "municipality": "Kumanovo",
+   "reason": "North-east region, same heatwave as Pehčevo: a short, intense contrast (115 detections in four days)."
+  },
+  {
+   "id": "stip-2024",
+   "effis_year": 2024,
+   "effis_id": "234079",
+   "title": "Štip fire, July 2024",
+   "place": "Štip",
+   "place_mk": "Штип",
+   "municipality": "Štip",
+   "reason": "Largest mapped North Macedonia fire in the EFFIS layers checked (13,335 ha); seen by four sensors on seventeen days.",
+   "context": [
+    {
+     "text": "On the night of 13 July 2024 North Macedonia's parliament declared a 30-day nationwide crisis situation because of the rising number of wildfires in the central and eastern parts of the country.",
+     "source_label": "ANSA, 14 Jul 2024",
+     "url": "https://ansa.it/nuova_europa/en/news/sections/culture/2024/07/14/wild-fires-and-heatwave-n.-macedonia-proclaims-state-of-crises_a0066ed4-b940-47fc-b6c3-7d85a79a581b.html"
+    }
+   ]
+  },
+  {
+   "id": "sveti-nikole-2024",
+   "effis_year": 2024,
+   "effis_id": "235779",
+   "title": "Sveti Nikole fire, July 2024",
+   "place": "Sveti Nikole",
+   "place_mk": "Свети Николе",
+   "municipality": "Sveti Nikole",
+   "reason": "Vardar region, 12,051 ha; the densest detection coverage of the set (1,109 detections in six days)."
+  },
+  {
+   "id": "novaci-2024",
+   "effis_year": 2024,
+   "effis_id": "237729",
+   "title": "Novaci fire, August 2024",
+   "place": "Novaci",
+   "place_mk": "Новаци",
+   "municipality": "Novaci",
+   "reason": "Pelagonia, 11,224 ha in August 2024: an earlier, separate event from the September Mariovo story."
+  },
+  {
+   "id": "vasilevo-2025",
+   "effis_year": 2025,
+   "effis_id": "275587",
+   "title": "Vasilevo fire, July 2025",
+   "place": "Vasilevo",
+   "place_mk": "Василево",
+   "municipality": "Vasilevo",
+   "reason": "Largest mapped 2025 fire (5,227 ha); south-east region, detections on fifteen days."
+  },
+  {
+   "id": "cesinovo-2016",
+   "effis_year": 2016,
+   "effis_id": "10145",
+   "title": "Češinovo fire, August 2016",
+   "place": "Češinovo-Obleševo",
+   "place_mk": "Чешиново-Облешево",
+   "municipality": "Češinovo-Obleševo",
+   "reason": "Largest North Macedonia fire in the EFFIS 2016 layer (1,789 ha); east, Kočani valley."
+  },
+  {
+   "id": "negotino-2022",
+   "effis_year": 2022,
+   "effis_id": "206923",
+   "title": "Negotino fire, July 2022",
+   "place": "Negotino",
+   "place_mk": "Неготино",
+   "municipality": "Negotino",
+   "reason": "Largest North Macedonia fire in the EFFIS 2022 layer (587 ha), a mild year; Vardar region."
+  },
+  {
+   "id": "prilep-2023",
+   "effis_year": 2023,
+   "effis_id": "221991",
+   "title": "Prilep fire, September 2023",
+   "place": "Prilep",
+   "place_mk": "Прилеп",
+   "municipality": "Prilep",
+   "reason": "Largest North Macedonia fire in the EFFIS 2023 layer (1,259 ha); Pelagonia, a late-season fire."
+  },
+  {
+   "id": "mogila-2023",
+   "effis_year": 2023,
+   "effis_id": "221254",
+   "title": "Mogila fire, September 2023",
+   "place": "Mogila",
+   "place_mk": "Могила",
+   "municipality": "Mogila",
+   "reason": "Second-largest North Macedonia fire in the EFFIS 2023 layer (1,214 ha); Pelagonia; added for better detection coverage than Prilep 2023."
+  }
+ ]
+}

@@ -1,0 +1,23 @@
+.venv/
+__pycache__/
+.DS_Store
+.env
+.env.*
+/[Tt]oken-and-key.txt
+# Local scientific inputs and environments are not source/deployment artifacts.
+/Data/
+/web/node_modules/
+/web/dist/
+firebase-debug.log*
+.firebase/
+/functions/venv/
+/functions/__pycache__/
+/functions/.env.local
+# Third-party pages, scripts, API responses and images captured during competitor research: evidence kept locally,
+# not ours to republish (our written analyses in docs/research/*.md are published).
+/docs/research/wildfiresignal/
+/docs/research/firemap-live/
+/docs/research/watch-fire/
+# Exports downloaded from the site while testing.
+/firewatch-mk-detections-*
+/apexfire-mk-detections-*

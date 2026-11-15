@@ -1,0 +1,112 @@
+{
+  "hosting": {
+    "public": "web/dist",
+    "ignore": [
+      "**/.*"
+    ],
+    "cleanUrls": false,
+    "rewrites": [
+      {
+        "source": "/mkffis/wms",
+        "function": {
+          "functionId": "mkffis_wms",
+          "region": "europe-west1"
+        }
+      },
+      {
+        "source": "/explore",
+        "destination": "/index.html"
+      },
+      {
+        "source": "/stories",
+        "destination": "/index.html"
+      },
+      {
+        "source": "/stories/*",
+        "destination": "/index.html"
+      },
+      {
+        "source": "/spread-lab",
+        "destination": "/index.html"
+      },
+      {
+        "source": "/harmonization",
+        "destination": "/index.html"
+      },
+      {
+        "source": "/data-methods",
+        "destination": "/index.html"
+      },
+      {
+        "source": "/about",
+        "destination": "/index.html"
+      }
+    ],
+    "headers": [
+      {
+        "source": "/assets/**",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=31536000, immutable"
+          }
+        ]
+      },
+      {
+        "source": "/data/**",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=3600"
+          },
+          {
+            "key": "X-Content-Type-Options",
+            "value": "nosniff"
+          }
+        ]
+      },
+      {
+        "source": "**/*.geojson",
+        "headers": [
+          {
+            "key": "Content-Type",
+            "value": "application/geo+json"
+          }
+        ]
+      },
+      {
+        "source": "**",
+        "headers": [
+          {
+            "key": "Referrer-Policy",
+            "value": "strict-origin-when-cross-origin"
+          },
+          {
+            "key": "X-Content-Type-Options",
+            "value": "nosniff"
+          },
+          {
+            "key": "Permissions-Policy",
+            "value": "geolocation=(self), camera=(), microphone=()"
+          }
+        ]
+      }
+    ]
+  },
+  "database": {
+    "rules": "database.rules.json"
+  },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "runtime": "python312",
+      "ignore": [
+        "venv",
+        "__pycache__",
+        "*.local",
+        "test_*.py"
+      ]
+    }
+  ]
+}

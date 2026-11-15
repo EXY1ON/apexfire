@@ -1,0 +1,199 @@
+{
+  "case": "Mariovo / Prilep, September 2024",
+  "reference": {
+    "source": "EFFIS / Copernicus EMS (CC BY 4.0)",
+    "reported_area_ha": 10265,
+    "projected_polygon_area_ha": 10242.04493534912,
+    "relative_difference_from_reported_area": -0.0022362459474797513,
+    "polygon_parts": 1,
+    "valid_geometry": true
+  },
+  "hls": {
+    "2024-08-23": {
+      "strict_usable_fraction_of_perimeter": 0.8219322525372348,
+      "fmask_clear_fraction_before_aerosol_filter_of_perimeter": 0.8222397961425245,
+      "high_aerosol_fraction_of_perimeter": 0.020499978032599623,
+      "strict_usable_fraction_of_crop": 0.8969734305303627,
+      "median_nbr_in_perimeter": 0.20435115694999695,
+      "cloud_cover_metadata_percent_whole_tile": 15.0
+    },
+    "2024-09-02": {
+      "strict_usable_fraction_of_perimeter": 0.5935943060498221,
+      "fmask_clear_fraction_before_aerosol_filter_of_perimeter": 0.7913096964105267,
+      "high_aerosol_fraction_of_perimeter": 0.40421774087254514,
+      "strict_usable_fraction_of_crop": 0.6753748512193359,
+      "median_nbr_in_perimeter": 0.2522735893726349,
+      "cloud_cover_metadata_percent_whole_tile": 1.0
+    },
+    "2024-09-12": {
+      "strict_usable_fraction_of_perimeter": 0.9980405078862967,
+      "fmask_clear_fraction_before_aerosol_filter_of_perimeter": 0.9980405078862967,
+      "high_aerosol_fraction_of_perimeter": 0.0,
+      "strict_usable_fraction_of_crop": 0.998573987245742,
+      "median_nbr_in_perimeter": -0.07896801829338074,
+      "cloud_cover_metadata_percent_whole_tile": 6.0
+    }
+  },
+  "d_nbr": {
+    "joint_clear_fraction_of_perimeter": 0.8203505997100303,
+    "joint_clear_area_in_perimeter_ha": 8402.4,
+    "median_dnbr_in_perimeter": 0.27054306864738464,
+    "median_dnbr_outside_perimeter_in_crop": 0.027249006554484367,
+    "threshold_sensitivity": {
+      "0.1": {
+        "fraction_of_joint_clear_perimeter_pixels": 0.8617395029991431,
+        "area_inside_perimeter_ha": 7240.679999999999,
+        "area_outside_perimeter_in_crop_ha": 1254.51
+      },
+      "0.2": {
+        "fraction_of_joint_clear_perimeter_pixels": 0.6904241645244216,
+        "area_inside_perimeter_ha": 5801.219999999999,
+        "area_outside_perimeter_in_crop_ha": 43.559999999999995
+      },
+      "0.3": {
+        "fraction_of_joint_clear_perimeter_pixels": 0.41469580119965727,
+        "area_inside_perimeter_ha": 3484.44,
+        "area_outside_perimeter_in_crop_ha": 11.07
+      }
+    }
+  },
+  "modis_mcd64a1": {
+    "native_grid_resolution_m": [
+      463.3127165279168,
+      463.3127165279165
+    ],
+    "valid_qa_fraction_of_perimeter": 1.0,
+    "valid_burned_pixels_in_1_to_7_sep_window": 185,
+    "approx_area_ha_from_500m_cells_in_1_to_7_sep_window": 3971.1854559848366,
+    "burned_pixel_counts_by_day_of_year": {
+      "245": 8,
+      "246": 15,
+      "247": 24,
+      "248": 26,
+      "249": 45,
+      "250": 67
+    },
+    "nominal_cell_area_ha": 21.465867329647764,
+    "approx_area_as_fraction_of_effis_reported_area": 0.38686658119676925
+  },
+  "open_meteo_historical_forecast": {
+    "provider": "Open-Meteo",
+    "product": "Historical Forecast API",
+    "model_requested": "ecmwf_ifs (ECMWF IFS HRES 9 km)",
+    "requested_coordinate_wgs84": [
+      41.27,
+      21.65
+    ],
+    "model_grid_coordinate_wgs84": [
+      41.300526,
+      21.69297
+    ],
+    "model_grid_elevation_m": 898.0,
+    "start_utc": "2024-09-01T00:00",
+    "end_utc": "2024-09-07T23:00",
+    "hourly_samples": 168,
+    "wind_speed_10m_m_s_min_median_max": [
+      0.14,
+      1.245,
+      4.25
+    ],
+    "wind_direction_10m_circular_mean_from_degrees": 59.89390790763112,
+    "wind_gusts_10m_max_m_s": 12.1,
+    "temperature_2m_min_max_c": [
+      14.6,
+      28.3
+    ],
+    "relative_humidity_2m_min_max_percent": [
+      26.0,
+      81.0
+    ],
+    "precipitation_total_mm": 3.3000000000000007,
+    "interpretation": "Retrospective model forecast context at a snapped grid point; not a local station record, fuel-moisture measure, or fire-spread validation."
+  },
+  "firms_active_fire_detections_inside_reference_sep1_7": {
+    "modis": {
+      "detections": 16
+    },
+    "viirs-jpss1": {
+      "detections": 259
+    },
+    "viirs-snpp": {
+      "detections": 263
+    }
+  },
+  "firms_daily_detections_inside_reference_sep1_7": {
+    "2024-09-01": {
+      "viirs-jpss1": 25,
+      "viirs-snpp": 17
+    },
+    "2024-09-02": {
+      "modis": 8,
+      "viirs-jpss1": 45,
+      "viirs-snpp": 53
+    },
+    "2024-09-03": {
+      "modis": 2,
+      "viirs-jpss1": 22,
+      "viirs-snpp": 34
+    },
+    "2024-09-04": {
+      "modis": 1,
+      "viirs-jpss1": 71,
+      "viirs-snpp": 88
+    },
+    "2024-09-05": {
+      "modis": 5,
+      "viirs-jpss1": 55,
+      "viirs-snpp": 39
+    },
+    "2024-09-06": {
+      "viirs-jpss1": 35,
+      "viirs-snpp": 25
+    },
+    "2024-09-07": {
+      "viirs-jpss1": 6,
+      "viirs-snpp": 7
+    }
+  },
+  "terrain": {
+    "elevation_min_m": 523.4508056640625,
+    "elevation_max_m": 1648.37255859375,
+    "median_slope_degrees": 17.04878044128418
+  },
+  "worldcover_2021_nearest_sampled_on_30m_grid": {
+    "Tree cover": {
+      "approx_area_ha_on_30m_grid": 3044.16,
+      "fraction_of_perimeter": 0.2972101401520144
+    },
+    "Grassland": {
+      "approx_area_ha_on_30m_grid": 7177.139999999999,
+      "fraction_of_perimeter": 0.7007249242124687
+    },
+    "Cropland": {
+      "approx_area_ha_on_30m_grid": 12.69,
+      "fraction_of_perimeter": 0.0012389613813101358
+    },
+    "Built-up": {
+      "approx_area_ha_on_30m_grid": 5.85,
+      "fraction_of_perimeter": 0.0005711524098238215
+    },
+    "Bare/sparse": {
+      "approx_area_ha_on_30m_grid": 0.72,
+      "fraction_of_perimeter": 7.029568120908571e-05
+    },
+    "Water": {
+      "approx_area_ha_on_30m_grid": 1.89,
+      "fraction_of_perimeter": 0.00018452616317385002
+    }
+  },
+  "methods": {
+    "hls_qa": "Reject fill 255, Fmask cloud/adjacency/shadow/snow/water bits 1-5, and high-aerosol class 3 in bits 6-7.",
+    "nbr": "(S30 B8A - B12)/(B8A + B12); dNBR is 2024-08-23 minus 2024-09-12. Thresholds are sensitivity summaries, not calibrated severity classes.",
+    "mcd64a1": "Count valid 500-m cells with burn date DOY 245-251; approximate cell area is not a precise burned-area estimate.",
+    "terrain": "NASADEM bilinear-resampled to 30 m; slope from central differences, approximate terrain context.",
+    "land_cover": "WorldCover 2021 nearest-resampled to 30 m; descriptive cover, not fuel-model or fuel-moisture data.",
+    "firms": "Existing CSV thermal-anomaly detections inside the EFFIS-derived polygon; a detection is not a perimeter or independent ground truth.",
+    "reference": "The perimeter is the EFFIS-attributed geometry exposed by WorldFires' public API; it was not independently obtained from the official EFFIS archive.",
+    "spread": "No rate-of-spread or future fire-front prediction is estimated."
+  }
+}
