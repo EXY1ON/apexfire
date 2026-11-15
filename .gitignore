@@ -21,3 +21,8 @@ firebase-debug.log*
 # Exports downloaded from the site while testing.
 /firewatch-mk-detections-*
 /apexfire-mk-detections-*
+
+# Private project plans and AI handoffs remain local.
+/PROJECT.md
+/PRODUCT.md
+/*[Hh][Aa][Nn][Dd][Oo][Ff][Ff]*.md

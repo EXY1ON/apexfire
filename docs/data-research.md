@@ -1,6 +1,6 @@
 # ApexFire — downloaded data audit and research
 
-Checked 14 November 2026. This report records the **original archive inspection and discovery-stage research**. Current status/roadmap is in [PROJECT.md](../PROJECT.md); later [readiness proofs](readiness/README.md) add current-access samples, numeric fuels, observed progression and a bounded model experiment. Open-Meteo is the user's intended weather source. Real-fire predictive accuracy remains unvalidated.
+Checked 14 November 2026. This report records the **original archive inspection and discovery-stage research**. Current status/roadmap is in PROJECT.md (local-only); later [readiness proofs](readiness/README.md) add current-access samples, numeric fuels, observed progression and a bounded model experiment. Open-Meteo is the user's intended weather source. Real-fire predictive accuracy remains unvalidated.
 
 Further source inspection of Watch Fire/WildfireSignal now adds [sixteen original-provider assets and national-service research](readiness/additional-sources.md). A direct 2024 EFFIS perimeter query did not intersect the earlier secondary Mariovo reference; the case report flags that unconfirmed provenance. Use the current handoff/specification for adoption status, not older open-task wording below.
 

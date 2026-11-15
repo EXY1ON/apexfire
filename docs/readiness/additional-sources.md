@@ -1,6 +1,6 @@
 # Additional sources from Watch Fire and WildfireSignal
 
-Checked 14 November 2026. **Sixteen original-provider assets (9.27 MB) are downloaded and contract/hash-checked, plus seven small MKFFIS research artifacts and a local perimeter-comparison summary. No website or cloud integration was built.** These findings extend the earlier readiness work; the roadmap remains in [PROJECT.md](../../PROJECT.md), and implementation contracts in [the website specification](../website-spec.md).
+Checked 14 November 2026. **Sixteen original-provider assets (9.27 MB) are downloaded and contract/hash-checked, plus seven small MKFFIS research artifacts and a local perimeter-comparison summary. No website or cloud integration was built.** These findings extend the earlier readiness work; the roadmap remains in PROJECT.md (local-only), and implementation contracts in [the website specification](../website-spec.md).
 
 Read the separate investigations for competitor behavior and evidence: [Watch Fire](../research/watch-fire.md), [WildfireSignal North Macedonia](../research/wildfiresignal.md). The parent also inspected both rendered interfaces; [observation summary](../research/watch-fire/parent-ui-observations.json). No competitor application code or proprietary feed is adopted as a production dependency.
 

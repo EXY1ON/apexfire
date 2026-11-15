@@ -1,6 +1,6 @@
 # ApexFire website build specification
 
-Prepared 14 November 2026. **Recommendation for Claude's implementation, not an existing application or a claim of scientific validation.** The authoritative goals, status and ordered roadmap live in [PROJECT.md](../PROJECT.md); start a build with [CLAUDE_HANDOFF.md](../CLAUDE_HANDOFF.md). Component evidence remains in [readiness](readiness/README.md), rather than being duplicated here.
+Prepared 14 November 2026. **Recommendation for Claude's implementation, not an existing application or a claim of scientific validation.** The authoritative goals, status and ordered roadmap live in PROJECT.md (local-only); start a build with CLAUDE_HANDOFF.md (local-only). Component evidence remains in [readiness](readiness/README.md), rather than being duplicated here.
 
 ## 1. Product and first-release boundary
 

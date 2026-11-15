@@ -158,7 +158,6 @@ tools/               Data acquisition, export, harmonization and model scripts (
 tests/               Python tests for exports, ingestion, proxy and analyses
 docs/                Specification, data audit, readiness evidence, research, case studies, screenshots
 logo/                Brand assets (SVG masters, PNG renders, kit)
-PROJECT.md           Current state, goals and roadmap
 ```
 
 ## Limits
@@ -172,7 +171,7 @@ PROJECT.md           Current state, goals and roadmap
 
 ## Roadmap
 
-From the [competitive review](docs/research/competitive-review-2026-11-15.md): alerts that reach users (web push for followed fires and places), an installable app, a Macedonian interface, all EFFIS burned areas as a map layer, EFFIS fire-danger forecast maps for the coming days, documented open data downloads, statistics by region, and a printable fire report. Scientific next steps (validated spread modelling, faster sensors) are in [PROJECT.md](PROJECT.md).
+From the [competitive review](docs/research/competitive-review-2026-11-15.md): alerts that reach users (web push for followed fires and places), an installable app, a Macedonian interface, all EFFIS burned areas as a map layer, EFFIS fire-danger forecast maps for the coming days, documented open data downloads, statistics by region, and a printable fire report. Scientific next steps include validated spread modelling and faster sensors.
 
 ## Data sources and licences
 

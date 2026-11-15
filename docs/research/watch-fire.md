@@ -1,6 +1,6 @@
 # Watch Fire: useful patterns and original-source routes
 
-Checked 14 November 2026. **Watch Fire supplies useful incident-context and source-health patterns; its breadth does not establish validated spread or impact prediction.** This is bounded public-interface research, not a licensed application starter or a production feed dependency. ApexFire's authoritative scope remains [PROJECT.md](../../PROJECT.md). Parent owns browser observations and original-provider acquisition; no competitor dataset or application code was adopted.
+Checked 14 November 2026. **Watch Fire supplies useful incident-context and source-health patterns; its breadth does not establish validated spread or impact prediction.** This is bounded public-interface research, not a licensed application starter or a production feed dependency. ApexFire's authoritative scope remains PROJECT.md (local-only). Parent owns browser observations and original-provider acquisition; no competitor dataset or application code was adopted.
 
 ## What is actually evidenced
 

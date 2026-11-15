@@ -1,6 +1,6 @@
 # ApexFire input proofs
 
-**Build entry point:** [complete Claude handoff](../../CLAUDE_HANDOFF.md) → [authoritative roadmap/current state](../../PROJECT.md) → [website structure and stack specification](../website-spec.md). This page owns the dated input-proof evidence, not the build roadmap.
+**Build entry point:** complete Claude handoff (local-only) → authoritative roadmap/current state (local-only) → [website structure and stack specification](../website-spec.md). This page owns the dated input-proof evidence, not the build roadmap.
 
 **Later source extension, 14 November:** [Watch Fire/WildfireSignal follow-up proofs](additional-sources.md) add sixteen original-provider assets, national-service research, practical API/download/key routes and a new Mariovo perimeter discrepancy. Roadmap/spec/handoff now include the new findings. The original preparation record below remains evidence for its unchanged inputs.
 
@@ -57,6 +57,6 @@ The separate model environment and pinned requirements are described in the scen
 
 ## Website continuation
 
-Use the [complete Council handoff](../../CLAUDE_HANDOFF.md) for the next build session. Its recommended screens/stack and the roadmap supersede the earlier short handoff; the scientific evidence and reproduction commands above remain valid for unchanged inputs.
+Use the complete Council handoff (local-only) for the next build session. Its recommended screens/stack and the roadmap supersede the earlier short handoff; the scientific evidence and reproduction commands above remain valid for unchanged inputs.
 
 Used: standard-library FIRMS/weather tools, EFFIS WCS/WFS, Earthdata token proof, Pyretechnics, read-only Firebase/Cloud checks and three subagents requested at GPT-6.1-sol/medium (applied settings unverified). Friction: Terminal UI access blocked; supported CLI checks used; expired EFFIS ZIP-host certificate avoided through valid-TLS WCS; model build isolated to Python 3.11. Unverified: real-fire accuracy, local fuel/moisture/canopy truth, live LANCE, Meteomatics entitlements, cloud credits, alert delivery and deployment.

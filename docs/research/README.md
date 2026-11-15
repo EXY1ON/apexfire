@@ -1,6 +1,6 @@
 # ApexFire website preparation: research and remaining proofs
 
-**Current build plan:** [PROJECT.md](../../PROJECT.md), [website specification](../website-spec.md) and [complete Claude handoff](../../CLAUDE_HANDOFF.md). The text below is a discovery-stage snapshot; its original open tasks do not override later readiness evidence or current implementation status.
+**Current build plan:** PROJECT.md (local-only), [website specification](../website-spec.md) and complete Claude handoff (local-only). The text below is a discovery-stage snapshot; its original open tasks do not override later readiness evidence or current implementation status.
 
 **Published repository note:** the capture folders `wildfiresignal/`, `firemap-live/` and `watch-fire/` hold third-party pages, scripts, API responses and images; they are kept locally as evidence and are not in the public repository. Links to them from these reports resolve only in the local working copy.
 
