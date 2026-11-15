@@ -618,3 +618,5 @@ fieldset:disabled .lab-compass button { opacity: 0.45; cursor: not-allowed; }
 .lab-warn { color: var(--warn); }
 .lab-hashes { overflow-wrap: anywhere; font-family: var(--font-mono); font-size: 0.6875rem; }
 .nowrap, .nowrap th, .nowrap td { white-space: nowrap; }
+.aims { display: grid; gap: 10px; padding-left: 1.2em; margin: 12px 0 16px; }
+.aims strong { color: var(--text); }

@@ -8,7 +8,7 @@ import { Mariovo } from './pages/Mariovo';
 import { FireStory } from './pages/FireStory';
 import { SpreadLab } from './pages/SpreadLab';
 import { DataMethods } from './pages/DataMethods';
-import { About } from './pages/About';
+import { About, REPO_URL } from './pages/About';
 import { Icon, type IconName } from './components/Icon';
 import { Harmonization } from './pages/Harmonization';
 
@@ -108,7 +108,7 @@ export function App() {
         ))}
       </main>
       <footer className="site-footer">
-        <p>ApexFire, a NASA Space Apps 2026 prototype for North Macedonia. Satellite detections are not confirmed fires; saved data is labelled with its time and is not live. <Link href="/data-methods">Sources &amp; methods</Link> · <Link href="/about">Status</Link></p>
+        <p>ApexFire, a NASA Space Apps 2026 prototype for North Macedonia. Satellite detections are not confirmed fires; saved data is labelled with its time and is not live. <Link href="/data-methods">Sources &amp; methods</Link> · <Link href="/about">About</Link> · <a href={REPO_URL} rel="noopener" target="_blank">Source code on GitHub</a></p>
       </footer>
     </>
   );

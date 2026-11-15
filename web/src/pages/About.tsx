@@ -2,29 +2,20 @@ import { Link } from '../lib/router';
 import { useExpert } from '../lib/mode';
 import { Icon, IconHeading } from '../components/Icon';
 
-const ROWS: [string, 'Implemented' | 'Saved sample' | 'Built, not deployed' | 'Pending', string][] = [
-  ['Fires now: detections grouped into fires with last seen, size, nearby settlements, downwind sector, live weather and Fire Weather Index', 'Implemented', 'Detections refresh every 15 minutes from NASA FIRMS; weather and fire danger are computed live'],
-  ['Follow a fire (5 km watch area on this device) and share a link to it', 'Implemented', 'No account; counts new detections when data loads'],
-  ['Archive 2000–2026: map with numbered groups, calendar, list, details, CSV/GeoJSON/provenance export, place search', 'Implemented', 'Four sensors; gap years from the FIRMS API'],
-  ['MODIS–VIIRS harmonization with held-out tests', 'Implemented', 'Fire-active cell-days; see the Harmonization page'],
-  ['Night, Light, Terrain and Satellite basemaps with relief', 'Implemented', 'OpenFreeMap, Terrain Tiles, Sentinel-2 cloudless'],
-  ['Brvenica 2017 replay, Mariovo 2024 evidence, Spread Lab scenarios and backtest', 'Implemented', 'Observed, reference and model evidence kept apart'],
-  ['Automatic refresh every 15 minutes', 'Implemented', 'Firebase scheduled function, running since 15 Nov 2026; the map checks every 5 minutes and marks data stale after 30 minutes without an update'],
-  ['Simple and Expert views', 'Implemented', 'Simple (default) uses plain words; Expert shows sensors, model details, filters and exports. The choice is remembered in this browser'],
-  ['Push or email alerts', 'Pending', 'Needs a delivery channel and opt-in'],
-  ['Photos on fires', 'Pending', 'Deferred: needs moderation, storage and privacy handling'],
-  ['What-if spread runs with new inputs', 'Pending', 'Requires executing the engine on demand'],
-  ['National fire-danger (MKFFIS) layers', 'Pending', 'Link only until rights, methods and delivery are clear'],
+export const REPO_URL = 'https://github.com/EXY1ON/apexfire';
+
+// Aspirations, not claims: each is unbuilt or unvalidated today (see Data & methods for what exists).
+const AIMS: [string, string][] = [
+  ['Warn people in time', 'Opt-in phone or email alerts when satellites see heat near a place or fire you follow, without needing an account.'],
+  ['See fires sooner', 'Add Europe\'s geostationary MTG satellite, which looks every 10 minutes, so new fires show up between the passes of the orbiting satellites.'],
+  ['Become a trusted national picture', 'Work with the Crisis Management Centre, firefighters and municipalities; show official fire-danger maps once their use is agreed; offer the site in Macedonian.'],
+  ['Earn trust for spread forecasts', 'Calibrate the Spread Lab model on many mapped fires with local fuel, moisture and wind data, and show uncertainty, before any forecast is offered.'],
+  ['Keep the evidence open', 'A public, sourced record of every fire for journalists, researchers and institutions: all officially mapped burned areas and a story for each major fire.'],
+  ['Grow region by region', 'Extend from North Macedonia to its neighbours and the wider Balkans, testing each region locally before adding it, since fires cross borders.'],
 ];
 
 export function About() {
   const expert = useExpert();
-  const table = (
-    <div className="table-scroll"><table className="stack-table">
-      <thead><tr><th scope="col">Capability</th><th scope="col">Status</th><th scope="col">Note</th></tr></thead>
-      <tbody>{ROWS.map(([c, s, n]) => <tr key={c}><th scope="row">{c}</th><td data-label="Status"><span className={`badge ${s === 'Implemented' ? 'ok' : s === 'Saved sample' ? 'sample' : s === 'Built, not deployed' ? 'stale' : 'off'}`}>{s}</span></td><td data-label="Note">{n}</td></tr>)}</tbody>
-    </table></div>
-  );
   return (
     <div className="page prose">
       <h1 id="page-title" tabIndex={-1}>About ApexFire</h1>
@@ -38,9 +29,12 @@ export function About() {
       <p>Three things in one place. A <strong>fire tracker</strong> for anyone in North Macedonia: where satellites see heat now, how recent it is, which way the wind carries smoke and how dry the weather is. An <strong>evidence archive</strong> for journalists and researchers: every satellite detection since 2000 with sources, filters and exports. And an answer to the Space Apps challenge “Harmonization of MODIS and VIIRS Hot Spots”: a tested conversion that puts both sensor generations on <Link href="/harmonization">one scale</Link>.</p>
       <IconHeading icon="eye">Who it is for</IconHeading>
       <p>Judges, researchers and interested public. It is not an emergency service: operational use would need validation and an operating partner. For official information use the <a href="https://mkffis.cuk.gov.mk/index.php/pocetna_strana/pocetna?lang=en" rel="noopener" target="_blank">MKFFIS (CUK) portal</a>.</p>
-      <IconHeading icon="layers">What works now</IconHeading>
-      <p>Satellite records go back to November 2000; newer satellites joined in 2012, 2018 and 2023. See <Link href="/data-methods#coverage">coverage by year and sensor</Link>.</p>
-      {expert ? table : <details><summary>Show what is built and what is pending</summary>{table}</details>}
+      <IconHeading icon="spread">What ApexFire aspires to accomplish</IconHeading>
+      <p>Today ApexFire is a working prototype. The goal is a fire service people in North Macedonia can rely on, built openly and in step with the people who fight fires:</p>
+      <ul className="aims">{AIMS.map(([t, d]) => <li key={t}><strong>{t}.</strong> {d}</li>)}</ul>
+      <p>Throughout, the same principles: no tracking, sources and limits always visible, and never presenting itself as an emergency service.</p>
+      <IconHeading icon="book">Open source</IconHeading>
+      <p>The code is public on <a href={REPO_URL} rel="noopener" target="_blank">GitHub (EXY1ON/apexfire)</a> under the MIT licence; each data source keeps its own licence, listed in <Link href="/data-methods">Data &amp; methods</Link>. Corrections, ideas and local knowledge are welcome there.</p>
       <IconHeading icon="shield">Privacy</IconHeading>
       <p>No sign-in, cookies or analytics. The map's locate button asks for your location only when you tap it; the position is used in your browser to centre the map and is not sent to ApexFire. Map tiles, weather (Open-Meteo) and the live detection feed (Firebase) are fetched from those providers. See <Link href="/data-methods#privacy">Data &amp; methods</Link>.</p>
       <p className="hint">Interface in English; Macedonian place names are kept in their original form, e.g. <span lang="mk">Полошки, Прилеп, Ѓевгелија, Кочани</span>.</p>
