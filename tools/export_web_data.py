@@ -501,22 +501,7 @@ def export_current():
         "request": "FIRMS area API, CSV, VIIRS NRT, 1 day, bbox 20.4,40.8,23.1,42.5 (MAP_KEY withheld)",
         "credit": FIRMS_CREDIT, "sources": sources,
     })
-    weather = []
-    for name in ("skopje", "mariovo"):
-        meta = json.loads((READY / "weather" / f"{name}-forecast-icon-global.metadata.json").read_text())
-        body = json.loads((READY / "weather" / f"{name}-forecast-icon-global.json").read_text())
-        if len(body["hourly"]["time"]) != 72:
-            raise ValueError("Expected 72 hourly weather values")
-        weather.append({"area": name.capitalize(), "retrieved_utc": meta["retrieved_utc"], "model_requested": meta["model_requested"],
-                        "model_run_time": meta["model_run_time"], "requested_lat_lon": meta["requested_coordinate_lat_lon"],
-                        "returned_lat_lon": meta["returned_coordinate_lat_lon"], "returned_elevation_m": meta["returned_elevation_m"],
-                        "units": meta["units"], "current": body["current"], "hourly": body["hourly"]})
-    write_json(OUT / "current" / "weather-sample.json", {
-        "schema": "firewatch.current.weather.v1", "data_class": "modeled_weather", "delivery": "saved_sample",
-        "provider": "Open-Meteo Forecast API", "credit": "Weather data by Open-Meteo.com (CC BY 4.0); DWD ICON model",
-        "model_note": "Requested legacy alias icon_global, documented by Open-Meteo to retire on 30 Nov 2026; select a supported model before ongoing use.",
-        "areas": weather,
-    })
+    # Named-point weather is fetched live by the browser (Now.tsx WeatherPanel), so no weather sample is exported.
     added = {a["path"].split("/")[-1]: a for a in json.loads((ADDED / "manifest.json").read_text())["assets"]}
     # Air quality is fetched live by the browser (web/src/lib/openmeteo.ts), so no CAMS sample is exported.
     weekly = json.loads((ADDED / "effis-weekly-mkd-2026.json").read_text())

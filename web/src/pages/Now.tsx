@@ -18,10 +18,6 @@ import { WindParticles } from '../components/WindParticles';
 import { buildField } from '../lib/wind-field';
 import { useMapCleanup, type ModeProps } from './Explore';
 
-interface WeatherArea { area: string; retrieved_utc: string; model_requested: string; model_run_time: string | null; requested_lat_lon: [number, number];
-  returned_lat_lon: [number, number]; returned_elevation_m: number; units: Record<string, string>;
-  current: Record<string, number | string>; hourly: Record<string, (number | string)[]> }
-interface WeatherSample { provider: string; credit: string; model_note: string; areas: WeatherArea[] }
 interface EffisRow { week: number; mddate: string; events: number | null; area_ha: number | null; events_avg: number | null; area_ha_avg: number | null; min_year: number }
 interface EffisSeason { retrieved_utc: string; product: string; source_url: string; credit: string; reference_note: string; weekly: EffisRow[]; cumulative: EffisRow[]; annual: { year: number; ba: number; nf: number }[] }
 interface WindPoint { requested: [number, number]; grid: [number, number]; elevation_m: number; speed: number[]; dir: number[]; gust: number[] }
@@ -32,7 +28,6 @@ export interface Fire { id: string; lat: number; lon: number; first_seen: string
 interface Recent { delivery?: 'saved_sample' | 'live'; retrieved_utc: string; window_start: string; window_end: string; latest_acquisition: string | null; bbox_wgs84: [number, number, number, number];
   products: string[]; grouping: string; credit: string; detections: RecentDet[]; fires: Fire[] }
 
-const vWeather = validateDoc<WeatherSample>('firewatch.current.weather.v1', ['areas']);
 const vEffis = validateDoc<EffisSeason>('firewatch.effis.season.v1', ['weekly', 'cumulative', 'annual']);
 function vRecent(raw: unknown, path: string): Recent {
   const r = validateDoc<Recent>('firewatch.current.recent.v1', ['detections', 'fires', 'window_end'])(raw, path);
@@ -123,7 +118,6 @@ export function NowMode({ map, state, update, shell, openSheet, focus, reduced }
   const saved = useData('current/wind-grid.json', validateWind);
   const live = useLiveWind();
   const effis = useData('current/effis-season.json', vEffis);
-  const weather = useData('current/weather-sample.json', vWeather);
   const boundary = useData('boundary-mk.geojson', validateGeoJSON);
   const follows = useFollows();
   const [hour, setHour] = useState<number | null>(null);
@@ -299,7 +293,7 @@ export function NowMode({ map, state, update, shell, openSheet, focus, reduced }
       </section>
       {expert && effis.data && <EffisPanel e={effis.data} />}
       {expert && <AirPanel />}
-      {expert && weather.data && <WeatherPanel w={weather.data} />}
+      {expert && <WeatherPanel />}
       {expert && <section aria-labelledby="health-h">
         <IconHeading icon="database" id="health-h" className="h3">Sources</IconHeading>
         <ul className="health">
@@ -551,35 +545,44 @@ function GridWind({ grid, lat, lon, hour }: { grid: WindGrid; lat: number; lon: 
   );
 }
 
-function WeatherPanel({ w }: { w: WeatherSample }) {
+const NAMED_POINTS = [{ area: 'Skopje', lat: 41.9981, lon: 21.4254 }, { area: 'Mariovo', lat: 41.27, lon: 21.65 }];
+const shown = (v: number, digits = 0) => (Number.isFinite(v) ? (digits ? fmt1(v) : String(Math.round(v))) : '–');
+
+/** Live ECMWF IFS weather at two named points, through the same cached request as a fire's weather card. */
+function WeatherPanel() {
   const [area, setArea] = useState(0);
-  const a = w.areas[area];
-  const c = a.current as Record<string, number>;
-  const dir = Number(c.wind_direction_10m);
+  const p = NAMED_POINTS[area];
+  const w = usePointWeather(p.lat, p.lon);
+  const d = w.data;
+  const i = d ? nearestHour(d.hourly.time) : 0;
+  const h = d?.hourly;
   return (
     <section aria-labelledby="wx-h">
       <IconHeading icon="thermo" id="wx-h" className="h3">Named-point weather</IconHeading>
       <div className="tabs small-tabs" role="group" aria-label="Weather area">
-        {w.areas.map((x, i) => <button key={x.area} type="button" aria-pressed={i === area} onClick={() => setArea(i)}>{x.area}</button>)}
+        {NAMED_POINTS.map((x, k) => <button key={x.area} type="button" aria-pressed={k === area} onClick={() => setArea(k)}>{x.area}</button>)}
       </div>
-      <dl className="figures">
-        <div><dt>Air</dt><dd className="num">{c.temperature_2m}<small> °C</small></dd></div>
-        <div><dt>Humidity</dt><dd className="num">{c.relative_humidity_2m}<small> %</small></dd></div>
-        <div><dt>Wind</dt><dd className="num">{Math.round(kmh(c.wind_speed_10m))}<small> km/h from {compass(dir)}</small></dd></div>
-        <div><dt>Rain</dt><dd className="num">{c.precipitation}<small> mm/h</small></dd></div>
-      </dl>
-      <p className="hint">Model value for {fmtUTC(String(a.current.time))}, grid point {a.returned_lat_lon.join(', ')} at {a.returned_elevation_m} m. Requested model <code>{a.model_requested}</code>; {w.model_note}</p>
-      <details>
-        <summary>72 hourly values (UTC calendar hours 14–16 Nov)</summary>
-        <div className="table-scroll"><table className="compact">
-          <thead><tr><th scope="col">UTC</th><th scope="col">°C</th><th scope="col">RH %</th><th scope="col">m/s</th><th scope="col">From</th><th scope="col">Gust</th><th scope="col">mm</th></tr></thead>
-          <tbody>{a.hourly.time.map((t, i) => (
-            <tr key={String(t)}><th scope="row">{String(t).replace('T', ' ')}</th><td>{a.hourly.temperature_2m[i]}</td><td>{a.hourly.relative_humidity_2m[i]}</td>
-              <td>{a.hourly.wind_speed_10m[i]}</td><td>{a.hourly.wind_direction_10m[i]}</td><td>{a.hourly.wind_gusts_10m[i]}</td><td>{a.hourly.precipitation[i]}</td></tr>
-          ))}</tbody>
-        </table></div>
-      </details>
-      <p className="hint">{w.credit}. Free noncommercial Open-Meteo service; best local accuracy is not established.</p>
+      {w.error ? <p className="hint" role="status">Weather could not load ({w.error}). Nothing is shown in its place.</p>
+        : !d || !h ? <p className="hint" role="status">Loading weather…</p>
+        : <>
+          <dl className="figures">
+            <div><dt>Air</dt><dd className="num">{shown(h.t[i], 1)}<small> °C</small></dd></div>
+            <div><dt>Humidity</dt><dd className="num">{shown(h.rh[i])}<small> %</small></dd></div>
+            <div><dt>Wind</dt><dd className="num">{shown(h.wind[i])}<small> km/h{Number.isFinite(h.dir[i]) && ` from ${compass(h.dir[i])}`}</small></dd></div>
+            <div><dt>Rain</dt><dd className="num">{shown(h.rain[i], 1)}<small> mm/h</small></dd></div>
+          </dl>
+          <p className="hint">Model value for {fmtUTC(h.time[i])}, grid point {d.grid.map((x) => x.toFixed(3)).join(', ')} at {d.elevation_m} m. Fetched by your browser {ageText(d.retrieved_utc)}.</p>
+          <details>
+            <summary>Next 48 hourly values (UTC)</summary>
+            <div className="table-scroll"><table className="compact nowrap">
+              <thead><tr><th scope="col">UTC</th><th scope="col">°C</th><th scope="col">RH %</th><th scope="col">km/h</th><th scope="col">From</th><th scope="col">Gust</th><th scope="col">mm</th></tr></thead>
+              <tbody>{h.time.slice(i, i + 48).map((tm, k) => { const j = i + k; return (
+                <tr key={tm}><th scope="row">{fmtUTC(tm).slice(5, 16)}</th><td>{shown(h.t[j], 1)}</td><td>{shown(h.rh[j])}</td>
+                  <td>{shown(h.wind[j])}</td><td>{Number.isFinite(h.dir[j]) ? compass(h.dir[j]) : '–'}</td><td>{shown(h.gust[j])}</td><td>{shown(h.rain[j], 1)}</td></tr>); })}</tbody>
+            </table></div>
+          </details>
+        </>}
+      <p className="hint">Weather data by Open-Meteo.com (CC BY 4.0); ECMWF IFS model at about 9 km (CC BY 4.0). Model values, not station readings: local valley and lake winds can be stronger than shown.</p>
     </section>
   );
 }
