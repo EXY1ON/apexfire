@@ -146,8 +146,6 @@ describe.runIf(hasData)('generated public data', () => {
     const last = [...e.cumulative].reverse().find((r: { area_ha: number | null }) => r.area_ha !== null);
     expect([last.area_ha, last.events, last.mddate]).toEqual([25323, 69, '20261111']);
     expect(e.cumulative.at(-1).area_ha).toBeNull();
-    const c = read('current/cams-sample.json');
-    expect([c.hourly.time.length, c.units.european_aqi, c.units.pm2_5]).toEqual([48, 'EAQI', 'μg/m³']);
     const firms = read('current/firms-sample.json');
     expect(firms.delivery).toBe('saved_sample');
     expect(firms.sources.map((x: { detections: unknown[] }) => x.detections.length)).toEqual([3, 1]);

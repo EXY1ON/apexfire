@@ -139,3 +139,48 @@ export function usePointWeather(lat: number | null, lon: number | null, date?: s
   }, [lat, lon, date]);
   return state;
 }
+
+const AQ_API = 'https://air-quality-api.open-meteo.com/v1/air-quality';
+const AQ_KEYS = ['pm2_5', 'pm10', 'carbon_monoxide', 'european_aqi'] as const;
+export type AqKey = (typeof AQ_KEYS)[number];
+export const AQ_POINT = { area: 'Skopje', lat: 41.9981, lon: 21.4254 };
+
+export interface AirQuality {
+  retrieved_utc: string; area: string; grid: [number, number]; time: string[];
+  units: Record<AqKey, string>; values: Record<AqKey, (number | null)[]>;
+}
+
+/** CAMS European ensemble (about 11 km) from yesterday to two days ahead, hourly; missing hours stay null, never filled. */
+export async function fetchAirQuality(signal?: AbortSignal): Promise<AirQuality> {
+  const q = new URLSearchParams({ latitude: AQ_POINT.lat.toFixed(4), longitude: AQ_POINT.lon.toFixed(4), domains: 'cams_europe',
+    timezone: 'UTC', past_days: '1', forecast_days: '2', hourly: AQ_KEYS.join(',') });
+  const b = (await getJSON(`${AQ_API}?${q}`, signal)) as { latitude: number; longitude: number; hourly?: Hourly; hourly_units?: Record<string, string> };
+  const time = b.hourly?.time as string[] | undefined;
+  if (!Array.isArray(time) || time.length < 24) throw new Error('Open-Meteo air quality returned too few hours');
+  if (b.hourly_units?.european_aqi !== 'EAQI') throw new Error('Open-Meteo air quality returned unexpected units');
+  const values = {} as AirQuality['values']; const units = {} as AirQuality['units'];
+  for (const k of AQ_KEYS) {
+    const v = b.hourly?.[k] as (number | null)[] | undefined;
+    if (!Array.isArray(v) || v.length !== time.length) throw new Error(`Open-Meteo air quality is missing ${k}`);
+    values[k] = v.map((x) => (typeof x === 'number' && Number.isFinite(x) ? x : null));
+    units[k] = b.hourly_units[k] ?? '';
+  }
+  return { retrieved_utc: new Date().toISOString(), area: AQ_POINT.area, grid: [b.latitude, b.longitude], time: time.map((t) => `${t}Z`), units, values };
+}
+
+let aqCache: { at: number; p: Promise<AirQuality> } | null = null;
+/** Live air quality, fetched at most once per 30 minutes per tab; errors are reported, not replaced. */
+export function useAirQuality() {
+  const [state, setState] = useState<{ data: AirQuality | null; error: string | null }>({ data: null, error: null });
+  useEffect(() => {
+    let live = true;
+    if (!aqCache || Date.now() - aqCache.at > GRID_TTL) aqCache = { at: Date.now(), p: fetchAirQuality() };
+    aqCache.p.then((data) => live && setState({ data, error: null }), (e: Error) => { aqCache = null; if (live) setState({ data: null, error: e.message }); });
+    return () => { live = false; };
+  }, []);
+  return state;
+}
+
+// European AQI bands as documented by Open-Meteo: 0-20 good, 20-40 fair, 40-60 moderate, 60-80 poor, 80-100 very poor, above 100 extremely poor.
+export const eaqiBand = (v: number) => ['Good', 'Fair', 'Moderate', 'Poor', 'Very poor'][Math.floor(v / 20)] ?? 'Extremely poor';
+

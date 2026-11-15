@@ -188,7 +188,7 @@ From the [competitive review](docs/research/competitive-review-2026-11-15.md): a
 | [NASA GIBS](https://nasa-gibs.github.io/gibs-api-docs/) | Daily true-colour imagery | NASA open data |
 | [MKFFIS](https://mkffis.cuk.gov.mk/) (Crisis Management Centre) | National danger and dryness maps (live, proxied) | Unconfirmed; see above |
 | [FireSpread_MedEU v2](https://zenodo.org/records/18200075) | Brvenica 2017 observed progression | CC BY 4.0 |
-| [CAMS](https://atmosphere.copernicus.eu/) via Open-Meteo | Air-quality sample (Expert) | Copernicus licence |
+| [CAMS](https://atmosphere.copernicus.eu/) via Open-Meteo | Live air quality for Skopje (Expert) | Copernicus licence |
 | [geoBoundaries](https://www.geoboundaries.org/) 2016, [GeoNames](https://www.geonames.org/) | Country outline, places and settlements | CC BY 4.0 |
 | [OpenFreeMap](https://openfreemap.org/) / [OpenStreetMap](https://www.openstreetmap.org/copyright) | Basemaps | ODbL (data) |
 | [Terrain Tiles](https://github.com/tilezen/joerd/blob/master/docs/attribution.md) | Relief shading | SRTM, GMTED, ETOPO1 attributions |

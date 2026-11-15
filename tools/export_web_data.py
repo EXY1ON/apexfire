@@ -517,17 +517,8 @@ def export_current():
         "model_note": "Requested legacy alias icon_global, documented by Open-Meteo to retire on 30 Nov 2026; select a supported model before ongoing use.",
         "areas": weather,
     })
-    cams = json.loads((ADDED / "cams-europe-skopje-48h.json").read_text())
-    if len(cams["hourly"]["time"]) != 48 or cams["hourly_units"]["european_aqi"] != "EAQI":
-        raise ValueError("CAMS sample contract changed")
     added = {a["path"].split("/")[-1]: a for a in json.loads((ADDED / "manifest.json").read_text())["assets"]}
-    write_json(OUT / "current" / "cams-sample.json", {
-        "schema": "firewatch.current.cams.v1", "data_class": "modeled_air_quality", "delivery": "saved_sample",
-        "retrieved_utc": added["cams-europe-skopje-48h.json"]["retrieved_utc"], "area": "Skopje",
-        "domain": "cams_europe", "credit": "CAMS ENSEMBLE (Copernicus Atmosphere Monitoring Service) via Open-Meteo",
-        "note": "Modeled concentrations at about 11 km; not station readings and not attributed to any fire.",
-        "returned_lat_lon": [cams["latitude"], cams["longitude"]], "units": cams["hourly_units"], "hourly": cams["hourly"],
-    })
+    # Air quality is fetched live by the browser (web/src/lib/openmeteo.ts), so no CAMS sample is exported.
     weekly = json.loads((ADDED / "effis-weekly-mkd-2026.json").read_text())
     annual = json.loads((ADDED / "effis-annual-mkd.json").read_text())
     nonnull = [r for r in weekly["banfcumulative"] if r["area_ha"] is not None]

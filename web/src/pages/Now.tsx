@@ -8,7 +8,7 @@ import { bearingSpread, haversineKm, pointInGeometry, wedge } from '../lib/geo';
 import { SENSOR_LABEL } from '../lib/history';
 import { fwiClass, fwiMeaning, FWI_CLASSES } from '../lib/fwi';
 import { useExpert } from '../lib/mode';
-import { usePointWeather, useLiveWind, type PointWeather } from '../lib/openmeteo';
+import { AQ_POINT, eaqiBand, useAirQuality, usePointWeather, useLiveWind, type AqKey, type PointWeather } from '../lib/openmeteo';
 import { newSince, toggleFollow, useFollows } from '../lib/follow';
 import { addLayers, CLUSTER, clusterLayers, expandCluster, markLayer, sensorPointLayer, SensorMark, setGeoJSON, setRaster } from '../components/MapView';
 import { legendUrl, MKFFIS_BOUNDS, MKFFIS_CREDIT, MKFFIS_ON, skopjeToday, tileUrl, useMkffis, type MkState } from '../lib/mkffis';
@@ -22,7 +22,6 @@ interface WeatherArea { area: string; retrieved_utc: string; model_requested: st
   returned_lat_lon: [number, number]; returned_elevation_m: number; units: Record<string, string>;
   current: Record<string, number | string>; hourly: Record<string, (number | string)[]> }
 interface WeatherSample { provider: string; credit: string; model_note: string; areas: WeatherArea[] }
-interface CamsSample { retrieved_utc: string; area: string; credit: string; note: string; returned_lat_lon: [number, number]; units: Record<string, string>; hourly: Record<string, (number | string)[]> }
 interface EffisRow { week: number; mddate: string; events: number | null; area_ha: number | null; events_avg: number | null; area_ha_avg: number | null; min_year: number }
 interface EffisSeason { retrieved_utc: string; product: string; source_url: string; credit: string; reference_note: string; weekly: EffisRow[]; cumulative: EffisRow[]; annual: { year: number; ba: number; nf: number }[] }
 interface WindPoint { requested: [number, number]; grid: [number, number]; elevation_m: number; speed: number[]; dir: number[]; gust: number[] }
@@ -34,7 +33,6 @@ interface Recent { delivery?: 'saved_sample' | 'live'; retrieved_utc: string; wi
   products: string[]; grouping: string; credit: string; detections: RecentDet[]; fires: Fire[] }
 
 const vWeather = validateDoc<WeatherSample>('firewatch.current.weather.v1', ['areas']);
-const vCams = validateDoc<CamsSample>('firewatch.current.cams.v1', ['hourly', 'units']);
 const vEffis = validateDoc<EffisSeason>('firewatch.effis.season.v1', ['weekly', 'cumulative', 'annual']);
 function vRecent(raw: unknown, path: string): Recent {
   const r = validateDoc<Recent>('firewatch.current.recent.v1', ['detections', 'fires', 'window_end'])(raw, path);
@@ -124,7 +122,6 @@ export function NowMode({ map, state, update, shell, openSheet, focus, reduced }
   const recent = useRecent();
   const saved = useData('current/wind-grid.json', validateWind);
   const live = useLiveWind();
-  const cams = useData('current/cams-sample.json', vCams);
   const effis = useData('current/effis-season.json', vEffis);
   const weather = useData('current/weather-sample.json', vWeather);
   const boundary = useData('boundary-mk.geojson', validateGeoJSON);
@@ -301,7 +298,7 @@ export function NowMode({ map, state, update, shell, openSheet, focus, reduced }
         <p className="hint">{expert ? 'Stored only in this browser. Push and email alerts are not built yet.' : 'Saved only on this device. New sightings are counted each time you open ApexFire; there are no phone alerts yet.'}</p>
       </section>
       {expert && effis.data && <EffisPanel e={effis.data} />}
-      {expert && cams.data && <CamsPanel c={cams.data} />}
+      {expert && <AirPanel />}
       {expert && weather.data && <WeatherPanel w={weather.data} />}
       {expert && <section aria-labelledby="health-h">
         <IconHeading icon="database" id="health-h" className="h3">Sources</IconHeading>
@@ -618,21 +615,34 @@ function EffisPanel({ e }: { e: EffisSeason }) {
   );
 }
 
-function CamsPanel({ c }: { c: CamsSample }) {
-  const t = c.hourly.time as string[];
-  const max = (k: string) => Math.max(...(c.hourly[k] as number[]));
-  const peak = (k: string) => t[(c.hourly[k] as number[]).indexOf(max(k))];
+/** Live CAMS air quality for Skopje, requested by the browser while the Expert view is open. */
+function AirPanel() {
+  const aq = useAirQuality();
+  const d = aq.data;
+  const i = d ? nearestHour(d.time) : 0;
+  const now = (k: AqKey) => d?.values[k][i] ?? null;
+  const peak = (k: AqKey) => {
+    let best: number | null = null; let at = '';
+    d?.values[k].slice(i, i + 25).forEach((v, j) => { if (v !== null && (best === null || v > best)) { best = v; at = d.time[i + j]; } });
+    return { v: best as number | null, at };
+  };
+  const fig = (k: AqKey, label: string) => {
+    const v = now(k);
+    return <div><dt>{label}</dt><dd className="num">{v === null ? '–' : Math.round(v)}<small> {d?.units[k]}</small>{k === 'european_aqi' && v !== null && <><br /><small>{eaqiBand(v)}</small></>}</dd></div>;
+  };
+  const pm = peak('pm2_5'); const aqi = peak('european_aqi');
   return (
     <section aria-labelledby="cams-h">
-      <IconHeading icon="cloud" id="cams-h" className="h3">Air quality, modeled</IconHeading>
-      <p className="kind-tag">Model concentrations, not station readings or fire smoke</p>
-      <dl className="figures">
-        <div><dt>PM2.5 peak</dt><dd className="num">{max('pm2_5')}<small> {c.units.pm2_5}</small><br /><small>{fmtUTC(peak('pm2_5'))}</small></dd></div>
-        <div><dt>PM10 peak</dt><dd className="num">{max('pm10')}<small> {c.units.pm10}</small></dd></div>
-        <div><dt>CO peak</dt><dd className="num">{max('carbon_monoxide')}<small> {c.units.carbon_monoxide}</small></dd></div>
-        <div><dt>European AQI</dt><dd className="num">{max('european_aqi')}<small> {c.units.european_aqi}</small></dd></div>
-      </dl>
-      <p className="hint">{c.area}, model grid {c.returned_lat_lon.join(', ')}, {t.length} hourly values {fmtUTC(t[0])} to {fmtUTC(t[t.length - 1])}. {c.note} Credit: {c.credit}.</p>
+      <IconHeading icon="cloud" id="cams-h" className="h3">Air quality now, modeled</IconHeading>
+      <p className="kind-tag">Live model forecast for {AQ_POINT.area}, not station readings or fire smoke</p>
+      {aq.error ? <p className="hint" role="status">Air quality could not load ({aq.error}). Nothing is shown in its place.</p>
+        : !d ? <p className="hint" role="status">Loading air quality…</p>
+        : <>
+          <dl className="figures">{fig('pm2_5', 'PM2.5')}{fig('pm10', 'PM10')}{fig('carbon_monoxide', 'CO')}{fig('european_aqi', 'European AQI')}</dl>
+          <p className="hint">Values for {fmtSkopje(d.time[i])} at model grid {d.grid.map((x) => x.toFixed(2)).join(', ')}.
+            {pm.v !== null && aqi.v !== null && <> Highest in the next 24 h: PM2.5 {Math.round(pm.v)} {d.units.pm2_5} ({fmtSkopje(pm.at)}), European AQI {Math.round(aqi.v)} ({eaqiBand(aqi.v)}).</>}
+            {' '}Fetched by your browser {ageText(d.retrieved_utc)}, refreshed every 30 minutes. CAMS European ensemble at about 11 km (Copernicus Atmosphere Monitoring Service) via Open-Meteo; not attributed to any fire.</p>
+        </>}
     </section>
   );
 }
