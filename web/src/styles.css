@@ -595,3 +595,26 @@ button > .icon { display: inline-block; vertical-align: -0.2em; margin-right: 7p
 .mini-facts dt { font-size: 0.6875rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); }
 .mini-facts dd { margin: 0; font-family: var(--font-display); font-size: var(--step-1); }
 h1.ih .alt-name { display: block; font-size: 0.5em; color: var(--muted); }
+
+/* Spread Lab */
+.lab-modes { margin: 4px 0 18px; }
+.lab-days { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; margin: 10px 0; }
+.lab-days button { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; border-radius: var(--r-md); padding: 8px 12px; text-align: left; font-size: var(--step--1); }
+.lab-days button span { font-size: 0.75rem; opacity: 0.8; }
+.lab-time { display: grid; grid-template-columns: auto 1fr; gap: 14px; align-items: end; margin: 6px 0 12px; }
+.lab-time .btn-primary { min-width: 88px; }
+.lab-compass { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; max-width: 300px; margin: 8px 0 0; }
+.lab-compass button { display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto; column-gap: 6px; align-items: center; border-radius: var(--r-sm); padding: 6px 8px; min-height: 44px; text-align: left; }
+.lab-compass button small { grid-column: 1 / -1; font-size: 0.6875rem; opacity: 0.8; }
+.lab-rose { display: block; height: 4px; border-radius: 2px; background: currentColor; opacity: 0.55; min-width: 2px; }
+.lab-compass-mid { display: flex; align-items: center; justify-content: center; color: var(--faint); }
+fieldset:disabled .lab-compass button { opacity: 0.45; cursor: not-allowed; }
+.lab-flamebar { display: flex; height: 10px; border-radius: 5px; overflow: hidden; margin: 4px 0 10px; background: var(--ink-2); }
+.lab-chart { margin: 16px 0 0; }
+.lab-chart-key { display: flex; flex-wrap: wrap; gap: 4px 14px; list-style: none; padding: 0; margin: 4px 0 0; font-size: 0.75rem; color: var(--muted); }
+.lab-chart-key li { display: flex; align-items: center; }
+.lab-fuels { list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: 4px; font-size: var(--step--1); }
+.lab-fuels li { display: grid; grid-template-columns: auto 1fr auto; align-items: center; }
+.lab-warn { color: var(--warn); }
+.lab-hashes { overflow-wrap: anywhere; font-family: var(--font-mono); font-size: 0.6875rem; }
+.nowrap, .nowrap th, .nowrap td { white-space: nowrap; }

@@ -471,6 +471,17 @@ def export_spread():
     from PIL import Image
     with Image.open(s / "mariovo-scenario.png") as im:
         im.convert("RGB").save(OUT / "spread" / "mariovo-scenario.jpg", quality=85, optimize=True)
+    # Spread Lab: precomputed by tools/run_spread_lab.py in the separate Pyretechnics environment; copied, not recomputed.
+    lab = READY / "spread-lab" / "web"
+    index = json.loads((lab / "index.json").read_text())
+    names = {"index.json", *(b["file"] for b in index["backtests"]), *(s["file"] for s in index["situations"]),
+             *(c["file"] for runs in index["matrix"].values() for c in runs.values())}
+    original = next(s for s in index["situations"] if s["id"] == "original")
+    if index["calibrated"] is not False or original["runs"]["centre"]["final_ha"] != 17 or names != {p.name for p in lab.glob("*.json")}:
+        raise ValueError("Spread Lab output is not the expected uncalibrated set; rerun tools/run_spread_lab.py")
+    (OUT / "spread" / "lab").mkdir(parents=True, exist_ok=True)
+    for name in sorted(names):
+        shutil.copyfile(lab / name, OUT / "spread" / "lab" / name)
 
 
 def export_current():

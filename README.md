@@ -50,7 +50,7 @@ A [competitive review](docs/research/competitive-review-2026-11-15.md) of nine w
 | **MODIS–VIIRS harmonization** | Fire-active cell-days converted between sensor generations with held-out tests (NOAA-20 → MODIS R² 0.90 on held-out months, 6.9 % annual error), so the 2000s and 2020s can be read on one scale. The [method](web/src/pages/Harmonization.tsx) and limits are on the page. |
 | **Weather for every archive day** | NASA POWER (MERRA-2) daily weather 2000–2025: a year chart aligning detections with heat, rain and wind, the chosen day's country-mean weather and its mean wind field on the map. |
 | **Fire stories** | 14 real fires: 12 officially mapped by EFFIS (2016–2025) with every detection inside the perimeter by day, ERA5 hourly wind and weather, the Fire Weather Index, land cover and the satellite image of each day; plus two in-depth case studies (Brvenica 2017 observed progression; Mariovo 2024 evidence study). |
-| **Spread Lab** | One real, clearly labelled experimental surface-fire model run (Pyretechnics, hypothetical ignition), not a forecast. |
+| **Spread Lab** | 419 precomputed, clearly labelled experimental surface-fire runs (Pyretechnics) on the real Mariovo landscape: choose start, wind speed and direction, and dryness; replay real ERA5 afternoons; and compare the model with two mapped fires (Negotino 2022, Makedonski Brod 2019: covers 88–99 % of each burn, ends 3–9× too large). Uncalibrated, not a forecast. |
 | **Data & Methods** | Every source, transformation and interpretation rule, with what was verified and what was not. |
 
 | Fire story (Sveti Nikole, 30 July 2024) | Archive, Expert mode (5 August 2021) |
@@ -123,6 +123,7 @@ python3 -m venv .venv && .venv/bin/pip install -r tools/requirements.txt
 python3 tools/fetch_power_weather.py           # NASA POWER daily weather 2000–2025 (no key)
 python3 tools/fetch_fire_stories.py            # EFFIS perimeters + ERA5 for tools/fire_stories.json (no key)
 python3 tools/fetch_firms_archive.py           # FIRMS API gap years (needs a free FIRMS MAP_KEY, kept out of the repo)
+$SPREAD_PY tools/run_spread_lab.py --fetch      # Spread Lab runs; $SPREAD_PY = Python 3.11 env from tools/spread-requirements.txt
 .venv/bin/python tools/export_web_data.py      # regenerate web/public/data
 .venv/bin/python -m unittest discover -s tests -p test_export_web_data.py   # export contracts and hashes
 functions/venv/bin/python -m unittest tests/test_functions.py               # ingestion and MKFFIS proxy

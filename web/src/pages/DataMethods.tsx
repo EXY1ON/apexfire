@@ -16,7 +16,8 @@ const SOURCES: { name: string; cls: string; use: string; time: string; rights: s
   { name: 'WorldFires Mariovo geometry (EFFIS-attributed)', cls: 'incident_reference (unconfirmed)', use: 'Mariovo reference perimeter', time: 'Sep 2024', rights: 'Attribution as stated by WorldFires; original not matched in EFFIS 2024 WFS', url: 'https://worldfires.org/en/fire/mariovo-2024-09' },
   { name: 'MODIS MCD64A1 C6.1, HLS S30 v2.0, NASADEM', cls: 'observed_burned_area / imagery', use: 'Mariovo evidence', time: 'Aug–Sep 2024', rights: 'NASA open data', url: 'https://lpdaac.usgs.gov/' },
   { name: 'ESA WorldCover 2021', cls: 'context', use: 'Mariovo cover context', time: '2021', rights: 'CC BY 4.0', url: 'https://esa-worldcover.org/' },
-  { name: 'Pyretechnics 2026.10.20 + EFFIS fuel map', cls: 'experimental_spread_scenario', use: 'Spread Lab', time: 'Hypothetical 2 Sep 2024 12:00–15:00 UTC', rights: 'Pyretechnics dual licence; EFFIS CC BY 4.0', url: '/data/spread/PYRETECHNICS-LICENSE.txt' },
+  { name: 'Pyretechnics 2026.10.20 + EFFIS fuel map, NASADEM, WorldCover', cls: 'experimental_spread_scenarios', use: 'Spread Lab', time: 'What-if runs; real afternoons 2017–2025 (ERA5); backtests Negotino 25–27 Jul 2022 and Makedonski Brod 13–17 Sep 2019', rights: 'Pyretechnics dual licence; EFFIS, WorldCover CC BY 4.0', url: '/data/spread/PYRETECHNICS-LICENSE.txt' },
+  { name: 'ERA5 hourly at Mariovo (Open-Meteo archive)', cls: 'reanalysis_weather', use: 'Spread Lab wind and dryness climatology, real-day runs', time: '2016–2025, hourly', rights: 'Copernicus C3S; Open-Meteo CC BY 4.0', url: 'https://open-meteo.com/en/docs/historical-weather-api' },
   { name: 'Open-Meteo (ICON forecast, ERA5, ECMWF IFS archive)', cls: 'modeled weather', use: 'Current weather sample; Brvenica/Mariovo context; model forcing', time: 'Samples 14 Nov 2026; 2017; 2024', rights: 'CC BY 4.0 data; free service noncommercial', url: 'https://open-meteo.com/' },
   { name: 'Live weather and wind: ECMWF IFS via Open-Meteo', cls: 'modeled weather', use: 'Fires now: wind arrows and downwind sectors, weather and Fire Weather Index at a fire or point, requested by your browser', time: '60 days back to 3 days ahead, hourly', rights: 'Open-Meteo CC BY 4.0 (free non-commercial service); ECMWF open data CC BY 4.0', url: 'https://open-meteo.com/en/docs' },
   { name: 'Saved wind forecast grid: ECMWF IFS via Open-Meteo', cls: 'modeled weather', use: 'Now: wind arrows, timebar and wind at any point (saved sample)', time: '77 points at 0.25°, 48 h from 14 Nov 2026 22:00 UTC', rights: 'Open-Meteo CC BY 4.0; ECMWF open data CC BY 4.0', url: 'https://open-meteo.com/en/docs' },
@@ -123,14 +124,14 @@ export function DataMethods() {
         <li>Saved samples are dated and never presented as a live feed.</li>
         <li>EFFIS mapped area/events differ from FIRMS detections and from MODIS burned-area cells.</li>
         <li>CAMS concentrations are modeled air quality, not wildfire-attributed smoke.</li>
-        <li>The Spread Lab scenario ends at 17 modeled hectares under hypothetical ignition/moisture; the model is uncalibrated.</li>
+        <li>Spread Lab runs are uncalibrated surface-fire model output under stated assumptions. Against two mapped fires it reaches most of each burn but ends 3–9 times too large (Makedonski Brod 2019, Negotino 2022), and is too slow early on in Makedonski Brod (no firefighting, coarse fuels); it is not a forecast.</li>
       </ul>
 
       <IconHeading icon="download" id="downloads">Downloads</IconHeading>
       <ul>
         <li><a href="/data/catalog.json">catalog.json</a>: every public data file with size and SHA-256, coverage and source hashes.</li>
         <li>Per sensor-year partitions: <code>/data/history/&lt;sensor&gt;-&lt;year&gt;.json</code> (columnar). Filtered CSV/GeoJSON exports are available from <Link href="/explore">Explore</Link>.</li>
-        <li><a href="/data/stories/brvenica-2017.json">Brvenica story data</a>, <a href="/data/stories/mariovo-2024.json">Mariovo story data</a>, <a href="/data/spread/mariovo-scenario.json">Spread scenario</a>, <a href="/data/current/wind-grid.json">saved wind forecast grid</a>.</li>
+        <li><a href="/data/stories/brvenica-2017.json">Brvenica story data</a>, <a href="/data/stories/mariovo-2024.json">Mariovo story data</a>, <a href="/data/spread/lab/index.json">Spread Lab runs (summaries, weather, assumptions)</a>, <a href="/data/spread/mariovo-scenario.json">original spread run</a>, <a href="/data/current/wind-grid.json">saved wind forecast grid</a>.</li>
       </ul>
 
       <IconHeading icon="shield" id="privacy">Privacy and external dependencies</IconHeading>

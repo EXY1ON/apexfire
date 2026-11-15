@@ -8,7 +8,7 @@ const ROWS: [string, 'Implemented' | 'Saved sample' | 'Built, not deployed' | 'P
   ['Archive 2000–2026: map with numbered groups, calendar, list, details, CSV/GeoJSON/provenance export, place search', 'Implemented', 'Four sensors; gap years from the FIRMS API'],
   ['MODIS–VIIRS harmonization with held-out tests', 'Implemented', 'Fire-active cell-days; see the Harmonization page'],
   ['Night, Light, Terrain and Satellite basemaps with relief', 'Implemented', 'OpenFreeMap, Terrain Tiles, Sentinel-2 cloudless'],
-  ['Brvenica 2017 replay, Mariovo 2024 evidence, Spread Lab scenario', 'Implemented', 'Observed, reference and model evidence kept apart'],
+  ['Brvenica 2017 replay, Mariovo 2024 evidence, Spread Lab scenarios and backtest', 'Implemented', 'Observed, reference and model evidence kept apart'],
   ['Automatic refresh every 15 minutes', 'Implemented', 'Firebase scheduled function, running since 15 Nov 2026; the map checks every 5 minutes and marks data stale after 30 minutes without an update'],
   ['Simple and Expert views', 'Implemented', 'Simple (default) uses plain words; Expert shows sensors, model details, filters and exports. The choice is remembered in this browser'],
   ['Push or email alerts', 'Pending', 'Needs a delivery channel and opt-in'],

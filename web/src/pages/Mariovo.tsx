@@ -184,7 +184,7 @@ export function Mariovo() {
           <section className="panel" aria-labelledby="lim-h">
             <IconHeading icon="info" id="lim-h" className="h3">What this supports, and what it does not</IconHeading>
             <p className="small">Supports: a dated evidence view of hotspots, coarse burn timing, imagery quality and context. Does not support: a fire-front forecast, rate of spread, arrival times or a reliable burned-hectare figure from hotspots.</p>
-            <p className="small">The <Link href="/spread-lab">Spread Lab</Link> runs a separate, hypothetical 3-hour model scenario in this area. It is not a reconstruction of this fire and is not validated against it.</p>
+            <p className="small">The <Link href="/spread-lab">Spread Lab</Link> runs hypothetical model scenarios on this landscape (chosen wind, dryness and start, or real afternoon weather). They are not a reconstruction of this fire and are not validated against it.</p>
             <p className="hint">Credits: NASA HLS, MODIS MCD64A1 C6.1, NASADEM, FIRMS; ESA WorldCover 2021 (CC BY 4.0); Open-Meteo / ECMWF; reference geometry via WorldFires ({s.reference.attribution_claimed} as stated by that site). Imagery {s.gibs.credit}.</p>
           </section>
         </div>

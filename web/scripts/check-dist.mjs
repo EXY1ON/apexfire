@@ -18,7 +18,9 @@ for (const f of files) {
   if (/\.(js|mjs|css|html|json|geojson|txt)$/.test(rel)) {
     const text = readFileSync(f, 'utf8');
     // sha256 hex in data provenance is 64 chars; the 32-hex rule targets FIRMS MAP_KEY-shaped values only.
-    const scrubbed = text.replace(/[A-Fa-f0-9]{64}/g, '');
+    // Spread Lab grids are base64 bytes from model rasters; runs of zero bytes encode as "AAAA…", which reads as hex.
+    const grids = rel.startsWith('data/spread/lab/') ? text.replace(/"(a|f|fuel_b64)":"[A-Za-z0-9+/=]*"/g, '') : text;
+    const scrubbed = grids.replace(/[A-Fa-f0-9]{64}/g, '');
     for (const r of forbidden) if (r.test(scrubbed)) problems.push(`${rel}: matches forbidden pattern ${r}`);
   }
   if (/^assets\/.*\.(js|mjs)$/.test(rel) && !/maplibre/i.test(rel)) jsGzip += gzipSync(readFileSync(f)).length;

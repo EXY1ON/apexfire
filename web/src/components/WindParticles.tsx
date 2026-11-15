@@ -30,7 +30,7 @@ function rasterMask(geom: GeoJSON.Geometry) {
 
 /** Streaks advected along a bilinearly interpolated wind field (a forecast hour, or a past day's mean), inside North Macedonia only.
  *  A 2D canvas over the map (a MapLibre canvas source would re-render the whole map every frame). Paused while the tab is hidden. */
-export function WindParticles({ map, field: fieldIn, boundary }: { map: MLMap; field: Field | null; boundary: GeoJSON.Geometry }) {
+export function WindParticles({ map, field: fieldIn, boundary, density = 1 }: { map: MLMap; field: Field | null; boundary: GeoJSON.Geometry; density?: number }) {
   const basemap = useBasemap();
   const field = useRef(fieldIn);
   field.current = fieldIn;
@@ -51,7 +51,7 @@ export function WindParticles({ map, field: fieldIn, boundary }: { map: MLMap; f
     const size = () => { W = box.clientWidth; H = box.clientHeight; canvas.width = W * dpr; canvas.height = H * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); };
     size();
     // About one particle per 900 px² of screen, 250-1,500: ~300 on a phone, 1,500 on a laptop.
-    const n = () => Math.max(250, Math.min(1500, Math.round((W * H) / 900)));
+    const n = () => Math.round(Math.max(250, Math.min(1500, (W * H) / 900)) * density); // density < 1: lighter streaks over a small model area
     type P = { lon: number; lat: number; age: number; max: number; out: number; x: number; y: number; live: boolean };
     let ps: P[] = [];
     const spawn = (p: P) => {

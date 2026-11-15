@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from 'react';
-import type { ExpressionSpecification, GeoJSONSource, LayerSpecification, Map as MLMap, StyleSpecification } from 'maplibre-gl';
+import type { ExpressionSpecification, GeoJSONSource, ImageSource, LayerSpecification, Map as MLMap, StyleSpecification } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url';
 
@@ -427,4 +427,19 @@ export function setRaster(map: MLMap, id: string, url: string | null, o: { attri
   map.addSource(id, { type: 'raster', tiles: [url], tileSize: 256, attribution: o.attribution, ...(o.bounds && { bounds: o.bounds }), ...(o.maxzoom && { maxzoom: o.maxzoom }) });
   const before = map.getStyle().layers.find((l) => l.type === 'symbol' || (l.id.startsWith('fw-') && l.type !== 'raster'))?.id;
   map.addLayer({ id: layer, type: 'raster', source: id, paint: { 'raster-opacity': o.opacity ?? 0.6 } }, before);
+}
+
+/** A georeferenced picture (a model grid drawn on a canvas) under the labels and point layers, cells kept sharp; corners
+ *  clockwise from top-left. `before` places it under another fw- layer; a null url removes it. Image sources take no
+ *  attribution in the style spec (MapLibre rejects the source), so credit belongs in the page or legend. */
+export function setImage(map: MLMap, id: string, url: string | null, coordinates: [number, number][], o: { opacity?: number; before?: string } = {}) {
+  if (!whenReady(map, () => setImage(map, id, url, coordinates, o))) return;
+  const layer = `${id}-layer`;
+  const src = map.getSource(id) as ImageSource | undefined;
+  if (!url) { if (map.getLayer(layer)) map.removeLayer(layer); if (src) map.removeSource(id); return; }
+  const corners = coordinates as [[number, number], [number, number], [number, number], [number, number]];
+  if (src) { src.updateImage({ url, coordinates: corners }); return; }
+  map.addSource(id, { type: 'image', url, coordinates: corners });
+  const before = o.before && map.getLayer(o.before) ? o.before : map.getStyle().layers.find((l) => l.type === 'symbol' || (l.id.startsWith('fw-') && l.type !== 'raster'))?.id;
+  map.addLayer({ id: layer, type: 'raster', source: id, paint: { 'raster-opacity': o.opacity ?? 0.85, 'raster-resampling': 'nearest', 'raster-fade-duration': 0 } }, before);
 }

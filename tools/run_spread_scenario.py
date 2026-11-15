@@ -33,6 +33,13 @@ MOISTURE = dict(fuel_moisture_dead_1hr=.06, fuel_moisture_dead_10hr=.08,
 
 def propagate(fuel, slope, aspect, wind_kph, wind_from, ignition, minutes=60, cell_m=30):
     """Wind FROM north clockwise; km/h at 10m. Engine y increases northward."""
+    layers, stats = simulate(fuel, slope, aspect, wind_kph, wind_from, ignition, minutes, cell_m)
+    return layers["time_of_arrival"], stats
+
+
+def simulate(fuel, slope, aspect, wind_kph, wind_from, ignition, minutes=60, cell_m=30, moisture=MOISTURE, band_minutes=60., start_minutes=0.):
+    """propagate() plus per-band moisture (scalars or one value per band), ignition start_minutes into the first band,
+    and the engine's fire-behaviour layers; arrival is returned in minutes after ignition."""
     fuel = np.asarray(fuel, dtype="float32")
     if fuel.ndim != 2 or not np.isfinite(fuel).all():
         raise ValueError("fuel must be a finite two-dimensional array")
@@ -46,21 +53,30 @@ def propagate(fuel, slope, aspect, wind_kph, wind_from, ignition, minutes=60, ce
     if wind_kph.size != wind_from.size or not np.isfinite(wind_kph).all() or not np.isfinite(wind_from).all() or (wind_kph < 0).any():
         raise ValueError("wind must be finite, aligned, and nonnegative")
     bands = wind_kph.size
+    moisture = {key: np.asarray(value, dtype="float32").reshape(-1) if np.ndim(value) else float(value) for key, value in moisture.items()}
+    if set(moisture) != set(MOISTURE) or any(np.ndim(v) and v.size != bands for v in moisture.values()) \
+            or not all(np.all(np.isfinite(v)) and np.all(np.asarray(v) > 0) for v in moisture.values()):
+        raise ValueError("moisture needs all six positive finite kg/kg inputs, scalar or one per wind band")
     cube_shape = (bands, *fuel.shape)
     inputs = dict(slope=slope, aspect=aspect, fuel_model=fuel,
                   canopy_cover=0., canopy_height=0., canopy_base_height=0.,
                   canopy_bulk_density=0., wind_speed_10m=wind_kph,
-                  upwind_direction=wind_from, **MOISTURE)
+                  upwind_direction=wind_from, **moisture)
     cubes = {key: SpaceTimeCube(cube_shape, value) for key, value in inputs.items()}
-    state = SpreadState(cube_shape).set_resolution((60., cell_m, cell_m)).set_start_time(0.)
+    if not 0 <= start_minutes < band_minutes:
+        raise ValueError("ignition must start inside the first weather band")
+    state = SpreadState(cube_shape).set_resolution((float(band_minutes), cell_m, cell_m)).set_start_time(float(start_minutes))
     state.ignite_cell(ignition)
     started = time.perf_counter()
     result = spread_fire_with_phi_field(cubes, state, max_duration=float(minutes))
-    arrival = result["spread_state"].get_full_matrices()["time_of_arrival"].copy()
+    layers = {k: v.copy() for k, v in result["spread_state"].get_full_matrices(
+        ["time_of_arrival", "flame_length", "spread_rate", "fireline_intensity"]).items()}
+    layers["time_of_arrival"] -= float(start_minutes)
+    arrival = layers["time_of_arrival"]
     burned = np.isfinite(arrival)
     if not burned.any() or (arrival[burned] < 0).any() or (arrival[burned] > minutes + .01).any():
         raise RuntimeError("invalid arrival times returned by engine")
-    return arrival, dict(runtime_seconds=time.perf_counter()-started,
+    return layers, dict(runtime_seconds=time.perf_counter()-started,
                          stop_time_minutes=result["stop_time"], stop_condition=result["stop_condition"],
                          burned_cells=int(burned.sum()))
 
@@ -96,6 +112,23 @@ def terrain_fields(elevation, cell_m):
     return np.hypot(dz_east, dz_north).astype("float32"), ((np.degrees(np.arctan2(-dz_east, -dz_north)) + 360) % 360).astype("float32")
 
 
+def engine_inputs(raw_fuel, cover, elevation, cell_m=100.):
+    """North-up NFFL fuel, WorldCover and elevation -> exclusions plus south-first engine fuel, slope and aspect."""
+    elevation = np.asarray(elevation, dtype="float32")
+    valid_terrain = np.isfinite(elevation) & (elevation >= 0)
+    if not valid_terrain.any():
+        raise ValueError("no valid local elevation")
+    # Fill solely for gradient arithmetic; exclude missing terrain and its derivative neighbors.
+    nearest = distance_transform_edt(~valid_terrain, return_distances=False, return_indices=True)
+    elevation = elevation[tuple(nearest)]
+    valid_gradient = binary_erosion(valid_terrain, structure=np.ones((3, 3)), border_value=0)
+    # Unknown official fuel classes are exclusions, not evidence of nonburnable land.
+    excluded = (raw_fuel == 0) | ~np.isin(cover, [10, 20, 30, 40, 90, 95, 100]) | ~valid_gradient
+    fuel = np.flipud(np.where(excluded, 98, raw_fuel).astype("float32")).copy()
+    slope, aspect = terrain_fields(np.flipud(elevation).copy(), cell_m)
+    return dict(elevation=elevation, excluded=excluded, fuel=fuel, slope=slope, aspect=aspect)
+
+
 def perimeters(arrival_north_up, profile, start, minutes):
     features = []
     for minute in minutes:
@@ -124,19 +157,9 @@ def run_mariovo(checks):
                 profile = src.profile.copy()
     if profile["crs"].to_epsg() != 32634 or profile["transform"].a != 100 or profile["transform"].e != -100:
         raise ValueError("expected north-up 100m UTM34N inputs")
-    elevation = arrays["elevation"].astype("float32")
-    valid_terrain = np.isfinite(elevation) & (elevation >= 0)
-    if not valid_terrain.any():
-        raise ValueError("no valid local elevation")
-    # Fill solely for gradient arithmetic; exclude missing terrain and its derivative neighbors.
-    nearest = distance_transform_edt(~valid_terrain, return_distances=False, return_indices=True)
-    elevation = elevation[tuple(nearest)]
-    valid_gradient = binary_erosion(valid_terrain, structure=np.ones((3, 3)), border_value=0)
     raw_fuel = arrays["fuel-model"]
-    cover = arrays["worldcover"]
-    # Unknown official fuel classes are exclusions, not evidence of nonburnable land.
-    excluded = (raw_fuel == 0) | ~np.isin(cover, [10, 20, 30, 40, 90, 95, 100]) | ~valid_gradient
-    fuel_north_up = np.where(excluded, 98, raw_fuel).astype("float32")
+    grid = engine_inputs(raw_fuel, arrays["worldcover"], arrays["elevation"])
+    elevation, excluded, fuel, slope, aspect = (grid[k] for k in ("elevation", "excluded", "fuel", "slope", "aspect"))
     ys, xs = np.where(~excluded)
     if not ys.size:
         raise ValueError("no burnable cells")
@@ -145,8 +168,6 @@ def run_mariovo(checks):
     nearest = np.argmin((ys-target_y)**2+(xs-target_x)**2)
     ignition_north_up = (int(ys[nearest]), int(xs[nearest]))
     ignition_engine = (raw_fuel.shape[0]-1-ignition_north_up[0], ignition_north_up[1])
-    fuel = np.flipud(fuel_north_up).copy()
-    slope, aspect = terrain_fields(np.flipud(elevation).copy(), 100.)
     weather_path = CASE / "weather/open-meteo-ecmwf-ifs-historical-forecast-2024-09-01_07.json"
     weather = json.loads(weather_path.read_text())
     if weather["data"]["hourly_units"]["wind_speed_10m"] != "m/s" or weather["data"]["utc_offset_seconds"] != 0:
