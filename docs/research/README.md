@@ -4,6 +4,8 @@
 
 **Published repository note:** the capture folders `wildfiresignal/`, `firemap-live/` and `watch-fire/` hold third-party pages, scripts, API responses and images; they are kept locally as evidence and are not in the public repository. Links to them from these reports resolve only in the local working copy.
 
+**Nature, agriculture and fuel sources (16 Nov 2026):** [source survey](nature-data-sources-2026-11-16.md) for land cover, crops, fuels and biodiversity in North Macedonia (awesome-public-datasets, NASA, Copernicus, GBIF, FAO); it feeds the [What burns design](../superpowers/specs/2026-11-16-what-burns-design.md).
+
 **Competitive review (15 Nov 2026):** [ApexFire against nine wildfire maps](competitive-review-2026-11-15.md): capability matrix and ranked missing features.
 
 **Follow-up site investigations:** [Watch Fire](watch-fire.md) and [WildfireSignal North Macedonia](wildfiresignal.md) examine actual public implementation/features and original providers. [Additional-source proofs](../readiness/additional-sources.md) record the resulting downloads, exact access/credential paths, EFFIS discrepancy and national FWI adoption limits. These are current extensions, rather than unexecuted discovery suggestions.
