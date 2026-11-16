@@ -19,6 +19,10 @@
         "destination": "/index.html"
       },
       {
+        "source": "/landscape",
+        "destination": "/index.html"
+      },
+      {
         "source": "/stories",
         "destination": "/index.html"
       },

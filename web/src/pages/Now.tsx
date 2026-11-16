@@ -16,6 +16,7 @@ import { legendUrl, MKFFIS_BOUNDS, MKFFIS_CREDIT, MKFFIS_ON, skopjeToday, tileUr
 import { Icon, IconHeading } from '../components/Icon';
 import { FlameGlyph, LayersDrawer, LineGlyph, PinGlyph, WindGlyph, type LegendItem } from '../components/LayersDrawer';
 import { WindParticles } from '../components/WindParticles';
+import { landCoverLegend, useLandCover } from '../components/LandscapeLayers';
 import { buildField } from '../lib/wind-field';
 import { useMapCleanup, type ModeProps } from './Explore';
 
@@ -120,11 +121,12 @@ export function NowMode({ map, state, update, shell, openSheet, focus, reduced }
   const [pick, setPick] = useState<{ lat: number; lon: number } | null>(null);
   const [drawer, setDrawer] = useState(false);
   const [insideOnly, setInsideOnly] = useState(false);
-  const [show, setShow] = useState({ wind: true, wedges: true, dets: true, boundary: true, imagery: false, mkFwi: false, mkVdm: false });
+  const [show, setShow] = useState({ wind: true, wedges: true, dets: true, boundary: true, imagery: false, mkFwi: false, mkVdm: false, land: false });
   const mk = useMkffis(show.mkFwi || show.mkVdm ? skopjeToday() : null, { vdm: true, back: 2 });
+  const land = useLandCover(map, show.land);
   const online = typeof navigator === 'undefined' ? true : navigator.onLine;
-  useMapCleanup(map, ['fw-boundary-line', 'fw-wedge-fill', 'fw-wedge-line', 'fw-wind-arrows', 'fw-now-cluster', 'fw-now-count', 'fw-now-pt', 'fw-fires-cluster', 'fw-fires-count', 'fw-fires-mark', 'fw-fire-mark', 'fw-pick-mark', 'fw-gibs-layer', 'fw-mkffis-fwi-layer', 'fw-mkffis-vdm-layer'],
-    ['fw-boundary', 'fw-wedges', 'fw-wind', 'fw-now', 'fw-fires', 'fw-fire', 'fw-pick', 'fw-gibs', 'fw-mkffis-fwi', 'fw-mkffis-vdm']);
+  useMapCleanup(map, ['fw-boundary-line', 'fw-wedge-fill', 'fw-wedge-line', 'fw-wind-arrows', 'fw-now-cluster', 'fw-now-count', 'fw-now-pt', 'fw-fires-cluster', 'fw-fires-count', 'fw-fires-mark', 'fw-fire-mark', 'fw-pick-mark', 'fw-gibs-layer', 'fw-mkffis-fwi-layer', 'fw-mkffis-vdm-layer', 'fw-landcover-layer'],
+    ['fw-boundary', 'fw-wedges', 'fw-wind', 'fw-now', 'fw-fires', 'fw-fire', 'fw-pick', 'fw-gibs', 'fw-mkffis-fwi', 'fw-mkffis-vdm', 'fw-landcover']);
 
   const grid: WindGrid | null = live.grid ?? saved.data;
   const country = boundary.data?.features[0]?.geometry ?? null;
@@ -244,6 +246,7 @@ export function NowMode({ map, state, update, shell, openSheet, focus, reduced }
     { glyph: <FlameGlyph height={24} />, label: 'Selected fire', note: expert ? 'Base of the flame = centre of the detection group' : 'Shown larger' },
     { glyph: <PinGlyph />, label: 'Place you picked', note: 'For its weather and fire danger' },
     { glyph: <LineGlyph />, label: 'Country outline', note: expert ? 'geoBoundaries, 2016 reference' : undefined },
+    ...(show.land ? landCoverLegend(land.data) : []),
   ];
 
   const passTime = r ? (expert ? fmtUTC(r.latest_acquisition ?? r.window_end) : fmtSkopje(r.latest_acquisition ?? r.window_end)) : '';
@@ -361,6 +364,8 @@ export function NowMode({ map, state, update, shell, openSheet, focus, reduced }
         { id: 'wedges', label: expert ? 'Downwind sectors' : 'Where smoke would drift', detail: expert ? 'One per fire, from the wind forecast' : 'One per fire, next 6 hours', checked: show.wedges, onChange: (on) => setShow((s) => ({ ...s, wedges: on })) },
         { id: 'wind', label: 'Wind', detail: `${live.grid ? 'Live forecast' : 'Saved forecast from 14 Nov'}${expert ? ': ECMWF IFS model via Open-Meteo, not station observations' : ''}${reduced ? '; static arrows (reduced motion)' : ''}`, checked: show.wind, onChange: (on) => setShow((s) => ({ ...s, wind: on })) },
         { id: 'imagery', label: expert ? 'Satellite image of the fire day' : 'Satellite photo of the fire day', detail: fire ? `${expert ? 'VIIRS NOAA-20, ' : ''}${fire.last_seen.slice(0, 10)}` : 'Select a fire first', checked: show.imagery, disabled: !fire, onChange: (on) => setShow((s) => ({ ...s, imagery: on })) },
+        { id: 'land', label: 'Land cover', detail: land.error ?? (expert ? 'CORINE 2018 (Copernicus Land, EEA), eight groups' : 'Forest, scrub, grassland and farmland'),
+          checked: show.land, onChange: (on) => setShow((s) => ({ ...s, land: on })) },
         { id: 'boundary', label: 'Country outline', checked: show.boundary, onChange: (on) => setShow((s) => ({ ...s, boundary: on })) },
         ...(MKFFIS_ON ? [
           { id: 'mkfwi', label: expert ? 'National Fire Weather Index (MKFFIS)' : 'Official fire danger (MKFFIS)', checked: show.mkFwi, onChange: (on: boolean) => setShow((s) => ({ ...s, mkFwi: on })),

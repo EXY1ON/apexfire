@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, navigate, useLocation } from './lib/router';
 import { setExpert, useExpert } from './lib/mode';
 import { Explore } from './pages/Explore';
+import { Landscape } from './pages/Landscape';
 import { Stories } from './pages/Stories';
 import { Brvenica } from './pages/Brvenica';
 import { Mariovo } from './pages/Mariovo';
@@ -13,18 +14,19 @@ import { Icon, type IconName } from './components/Icon';
 import { Harmonization } from './pages/Harmonization';
 
 // [href, Expert label, Simple label, icon]
-const NAV: readonly (readonly [string, string, string, IconName])[] = [['/explore', 'Map', 'Fire map', 'map'], ['/harmonization', 'Harmonization', 'Satellites compared', 'compare'],
+const NAV: readonly (readonly [string, string, string, IconName])[] = [['/explore', 'Map', 'Fire map', 'map'], ['/landscape', 'Landscape', 'Landscape', 'leaf'], ['/harmonization', 'Harmonization', 'Satellites compared', 'compare'],
   ['/stories', 'Stories', 'Fire stories', 'book'], ['/spread-lab', 'Spread Lab', 'How fire spreads', 'spread'], ['/data-methods', 'Data & Methods', 'Sources', 'database'],
   ['/about', 'About', 'About', 'info']];
 
 const TITLES: Record<string, string> = {
-  '/explore': 'Fire map', '/stories': 'Fire stories', '/stories/brvenica-2017': 'Brvenica 2017', '/stories/mariovo-2024': 'Mariovo 2024',
+  '/explore': 'Fire map', '/landscape': 'Landscape', '/stories': 'Fire stories', '/stories/brvenica-2017': 'Brvenica 2017', '/stories/mariovo-2024': 'Mariovo 2024',
   '/spread-lab': 'Spread Lab', '/harmonization': 'Harmonization', '/data-methods': 'Data & methods', '/about': 'About',
 };
 
 function route(path: string) {
   switch (path.replace(/\/+$/, '') || '/') {
     case '/explore': return <Explore />;
+    case '/landscape': return <Landscape />;
     case '/stories': return <Stories />;
     case '/stories/brvenica-2017': return <Brvenica />;
     case '/stories/mariovo-2024': return <Mariovo />;

@@ -12,6 +12,8 @@ import { Calendar } from '../components/Calendar';
 import { PlaceSearch, validatePlaces, type Place } from '../components/PlaceSearch';
 import { DetectionDetail } from '../components/DetectionDetail';
 import { FlameGlyph, LayersDrawer, LineGlyph, RingGlyph, type LegendItem } from '../components/LayersDrawer';
+import { BURNED_LEGEND, BURNED_PATH, landCoverLegend, useBurnedLayer, useLandCover } from '../components/LandscapeLayers';
+import { archiveBurnedYear, burnedFor } from '../lib/landscape';
 import { WindParticles } from '../components/WindParticles';
 import { DayWeather, YearWeather } from '../components/YearWeather';
 import { Chip, Icon, IconHeading } from '../components/Icon';
@@ -229,10 +231,15 @@ function HistoryMode({ map, state, update, shell, openSheet, focus, reduced }: M
   const [place, setPlace] = useState<Place | null>(null);
   const [announce, setAnnounce] = useState('');
   const [drawer, setDrawer] = useState(false);
-  const [show, setShow] = useState({ dets: true, boundary: true, wind: true, mkFwi: false });
+  const [show, setShow] = useState({ dets: true, boundary: true, wind: true, mkFwi: false, land: false, burned: false });
+  const land = useLandCover(map, show.land);
+  const burnedAll = useData(show.burned ? BURNED_PATH : null, validateGeoJSON);
+  const burnedYear = archiveBurnedYear(state.year);
+  const burnedFc = useMemo(() => (show.burned && burnedAll.data && burnedYear !== null ? burnedFor(burnedAll.data, burnedYear) : null), [show.burned, burnedAll.data, burnedYear]);
+  useBurnedLayer(map, burnedFc);
   const wx = useData(catalog.data?.weather?.years.includes(state.year) ? `weather/weather-${state.year}.json` : null, validateWeatherYear);
   const allPlaces = useData(state.place && !place ? 'places.json' : null, validatePlaces);
-  useMapCleanup(map, ['fw-boundary-line', 'fw-dets-cluster', 'fw-dets-count', 'fw-dets-pt', 'fw-dets-flame', 'fw-sel-ring', 'fw-sel-flame', 'fw-place-pt', 'fw-mkffis-fwi-layer'], ['fw-boundary', 'fw-dets', 'fw-sel', 'fw-place', 'fw-mkffis-fwi']);
+  useMapCleanup(map, ['fw-boundary-line', 'fw-dets-cluster', 'fw-dets-count', 'fw-dets-pt', 'fw-dets-flame', 'fw-sel-ring', 'fw-sel-flame', 'fw-place-pt', 'fw-mkffis-fwi-layer', 'fw-landcover-layer', 'fw-burned-fill', 'fw-burned-line', 'fw-burned-small'], ['fw-boundary', 'fw-dets', 'fw-sel', 'fw-place', 'fw-mkffis-fwi', 'fw-landcover', 'fw-burned']);
 
   const all = useMemo(() => (parts ? SENSOR_KEYS.flatMap((s) => parts[s]?.dets ?? []).sort((a, b) => (a.t < b.t ? -1 : a.t > b.t ? 1 : 0)) : []), [parts]);
   const quality = useMemo(() => all.filter((d) => passesQuality(d, state)), [all, state]);
@@ -343,6 +350,7 @@ function HistoryMode({ map, state, update, shell, openSheet, focus, reduced }: M
       note: expert ? 'Streaks follow the MERRA-2 daily mean 10 m wind (NASA POWER, 0.5° × 0.625°, interpolated), sped up to be visible. Inside North Macedonia only.' : 'Moving lines show that day’s average wind, sped up.' }] : []),
     { glyph: <span className="swatch" style={{ background: '#fff', border: '2px solid #0C0D0A', width: 14, height: 14 }} />, label: 'Place you searched' },
     { glyph: <LineGlyph />, label: 'Country outline', note: 'geoBoundaries, 2016 reference' },
+    ...(show.land ? landCoverLegend(land.data) : []), ...(show.burned && burnedYear !== null ? [BURNED_LEGEND] : []),
   ];
 
   const left = (
@@ -471,6 +479,10 @@ function HistoryMode({ map, state, update, shell, openSheet, focus, reduced }: M
     right,
     <><LayersDrawer open={drawer} onOpenChange={setDrawer} legend={legend} layers={[
       { id: 'dets', label: expert ? 'Satellite detections' : 'Satellite sightings', detail: `${fmtInt(shown.length)} ${expert ? 'in view filters' : 'shown'}`, checked: show.dets, onChange: (on) => setShow((s) => ({ ...s, dets: on })) },
+      { id: 'land', label: 'Land cover', detail: land.error ?? (expert ? 'CORINE 2018 (Copernicus Land, EEA), eight groups' : 'Forest, scrub, grassland and farmland'),
+        checked: show.land, onChange: (on) => setShow((s) => ({ ...s, land: on })) },
+      { id: 'burned', label: 'Mapped burned areas', checked: show.burned, onChange: (on) => setShow((s) => ({ ...s, burned: on })),
+        detail: burnedAll.error ?? (burnedYear === null ? `EFFIS mapping starts in 2016; nothing for ${state.year}` : burnedFc ? `${fmtInt(burnedFc.features.length)} mapped by EFFIS in ${state.year}` : `EFFIS, ${state.year}`) },
       { id: 'boundary', label: 'Country outline', detail: expert ? 'geoBoundaries 2016 reference' : undefined, checked: show.boundary, onChange: (on) => setShow((s) => ({ ...s, boundary: on })) },
       { id: 'wind', label: expert ? 'Wind, daily mean' : 'Wind that day', checked: show.wind && !!field, disabled: !field, onChange: (on) => setShow((s) => ({ ...s, wind: on })),
         detail: field ? `${windDay}${expert ? ', NASA POWER (MERRA-2)' : ''}${reduced ? '; hidden while reduced motion is on' : ''}` : wx.data || !cat.weather ? 'Pick one day on the calendar or a sighting first' : `No daily weather for ${state.year}` },

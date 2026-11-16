@@ -620,3 +620,14 @@ fieldset:disabled .lab-compass button { opacity: 0.45; cursor: not-allowed; }
 .nowrap, .nowrap th, .nowrap td { white-space: nowrap; }
 .aims { display: grid; gap: 10px; padding-left: 1.2em; margin: 12px 0 16px; }
 .aims strong { color: var(--text); }
+/* Landscape: "more than its share" bars (the tick marks 1×) and chart legends. */
+.share-bars { list-style: none; margin: 8px 0 14px; padding: 0; display: grid; gap: 8px; }
+.share-bars li { display: grid; grid-template-columns: minmax(0, 11rem) minmax(0, 1fr) 3.2rem; gap: 10px; align-items: center; }
+.sb-label { font-size: var(--step--1); line-height: 1.25; }
+.sb-label small { display: block; color: var(--faint); }
+.sb-track { position: relative; height: 12px; background: var(--ink-2); border-radius: 6px; }
+.sb-bar { position: absolute; inset: 0 auto 0 0; border-radius: 6px; }
+.sb-one { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--text); }
+.share-bars b { text-align: right; font-size: var(--step--1); }
+.chart-legend { list-style: none; padding: 0; margin: 6px 0 10px; display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: var(--step--1); color: var(--muted); }
+.chart-legend .swatch { margin-right: 6px; }
