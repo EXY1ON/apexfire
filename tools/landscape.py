@@ -159,3 +159,299 @@ def takeaways(starts_by_group, avg_month_group, nasa_by_group, sensor_label, sta
         {"id": "burned", "values": {"group": ids[burn], "pct": round(burn_pct, 1), "total_ha": round(burn_total)},
          "text": f"{labels[burn]} lost the most area: {burn_pct:.0f}% of the {burn_total:,.0f} ha NASA mapped as burned in {nasa_years[0]}–{nasa_years[1]}."},
     ]
+
+
+# --- export (needs the project .venv: rasterio, shapely, Pillow) ------------------------------------------
+
+SENSOR_YEARS = {"viirs-snpp": (2012, 2025), "modis": (2001, 2025), "viirs-jpss1": (2018, 2025)}  # full years (D11, D12)
+SENSOR_LABEL = {"viirs-snpp": "VIIRS S-NPP", "modis": "MODIS", "viirs-jpss1": "VIIRS NOAA-20"}
+NASA_YEARS = (2001, 2025)
+EFFIS_FIRST = 2016
+SMALL_HA = 30
+CELL = 100        # statistics grid in EPSG:3035, the CORINE projection
+SHOW_CELL = 134   # display image in EPSG:3857: about 100 m on the ground at 41.6 N
+BUDGET = {"what-burns.json": 200_000, "landcover-mk.png": 700_000, "burned-areas.geojson": 1_500_000}
+CREDITS = [
+    "Land cover: © European Union, Copernicus Land Monitoring Service, European Environment Agency (CORINE Land Cover 2000, 2006, 2012, 2018).",
+    "Burned areas 2016 to now: EFFIS, European Commission Joint Research Centre (CC BY 4.0).",
+    "Burned area 2001–2025: NASA MODIS MCD64A1 v061, NASA LP DAAC.",
+    "Fire detections: NASA FIRMS, MODIS C6.1 and VIIRS 375 m; cite LANCE/FIRMS.",
+]
+
+
+def to_3035(lon, lat):
+    from rasterio.warp import transform
+    x, y = transform("EPSG:4326", "EPSG:3035", np.asarray(lon, dtype=float).tolist(), np.asarray(lat, dtype=float).tolist())
+    return np.array(x), np.array(y)
+
+
+def point_test(mk):
+    """Vectorised 'inside the country' test for lon/lat arrays."""
+    import shapely
+    shapely.prepare(mk)
+    return lambda lon, lat: shapely.contains_xy(mk, np.asarray(lon, dtype=float), np.asarray(lat, dtype=float))
+
+
+def _frame(crs, cell):
+    from rasterio.warp import transform_bounds
+    w, s, e, n = transform_bounds("EPSG:4326", crs, *BBOX, densify_pts=21)
+    left, top = math.floor(w / cell) * cell, math.ceil(n / cell) * cell
+    return left, top, math.ceil((e - left) / cell), math.ceil((top - s) / cell)
+
+
+def land_grid(features, field, country, crs, cell):
+    """CORINE codes on a north-up grid over BBOX, 0 outside the country (cell centres decide). Returns (grid, left, top)."""
+    from rasterio.features import rasterize
+    from rasterio.transform import from_origin
+    from rasterio.warp import transform_geom
+    left, top, width, height = _frame(crs, cell)
+    tr = from_origin(left, top, cell, cell)
+    shapes = ((transform_geom("EPSG:4326", crs, f["geometry"]), int(f["properties"][field])) for f in features)
+    grid = rasterize(shapes, out_shape=(height, width), transform=tr, fill=0, dtype="uint16")
+    inside = rasterize([(transform_geom("EPSG:4326", crs, country), 1)], out_shape=(height, width), transform=tr, fill=0, dtype="uint8")
+    grid[inside == 0] = 0
+    return grid, left, top
+
+
+def shares_of(grid, lut, n):
+    counts = np.bincount(lut[grid[grid > 0]], minlength=n + 1)[:n].astype(float)
+    return counts / counts.sum(), counts
+
+
+def code_shares(grid):
+    codes, counts = np.unique(grid[grid > 0], return_counts=True)
+    keep = [(int(c), int(k)) for c, k in zip(codes, counts) if int(c) not in NOT_CLASSIFIED]
+    total = sum(k for _, k in keep)
+    return {str(c): round(k / total, 5) for c, k in keep}
+
+
+def write_png(grid, path):
+    """Indexed PNG: palette entry 0 is transparent, 1-10 are the group colours (D7)."""
+    from PIL import Image
+    lut, n = code_lut(GROUPS), len(GROUPS)
+    idx = lut[grid].astype(np.int16) + 1
+    idx[(grid == 0) | (idx == n + 1)] = 0
+    img = Image.frombytes("P", (grid.shape[1], grid.shape[0]), idx.astype(np.uint8).tobytes())
+    palette = [0, 0, 0] + [b for g in GROUPS for b in bytes.fromhex(g["color"][1:])]
+    img.putpalette(palette + [0] * (768 - len(palette)))
+    img.save(path, optimize=True, transparency=0)
+
+
+def corners_3857(left, top, width, height, cell):
+    from rasterio.warp import transform
+    right, bottom = left + width * cell, top - height * cell
+    lons, lats = transform("EPSG:3857", "EPSG:4326", [left, right, right, left], [top, top, bottom, bottom])
+    return [[round(x, 6), round(y, 6)] for x, y in zip(lons, lats)]
+
+
+def _ts(t):
+    return datetime.fromisoformat(t.replace("Z", "+00:00")).timestamp()
+
+
+def starts_for(dets, x, y, inside, grids, gap_hours):
+    """Fire starts (D2, D13, D17): detections grouped by firelib. A start counts when its first detection is inside the
+    country; the land under that detection's footprint (CORINE edition at or before its year, D3) classes it."""
+    from firelib import cluster
+    lut, n = code_lut(GROUPS), len(GROUPS)
+    out = []
+    for members in cluster(dets, gap_hours):
+        members = sorted(members, key=lambda i: dets[i]["t"])
+        i = members[0]
+        f = dets[i]
+        if not inside[i]:
+            continue
+        year = int(f["t"][:4])
+        edition = edition_for_year(year)
+        grid, left, top = grids[edition]
+        shares = window_shares(grid, left, top, CELL, x[i], y[i], f["scan"] * 500, f["track"] * 500, lut, n)
+        out.append({"year": year, "month": int(f["t"][5:7]), "edition": edition, "shares": shares,
+                    "days": (_ts(dets[members[-1]]["t"]) - _ts(f["t"])) / 86400})
+    return out
+
+
+def load_detections(history_dir, sensor, years):
+    """Type-0 (vegetation fire) rows of one sensor's full years from the exported partitions (D12)."""
+    out = []
+    for path in sorted(history_dir.glob(f"{sensor}-*.json")):
+        doc = json.loads(path.read_text())
+        if doc["sensor"] != sensor or not years[0] <= doc["year"] <= years[1]:
+            continue
+        c = {k: i for i, k in enumerate(doc["columns"])}
+        out += [{"id": r[c["id"]], "t": r[c["t"]], "lat": r[c["lat"]], "lon": r[c["lon"]], "frp": r[c["frp"]],
+                 "scan": r[c["scan"]], "track": r[c["track"]]} for r in doc["rows"] if r[c["type"]] == 0]
+    return out
+
+
+def sensor_summary(sensor, history_dir, grids, land, area, inside_fn):
+    """Fire starts by year x month x group, durations, activity and the D10 figures for one sensor."""
+    years = SENSOR_YEARS[sensor]
+    ny, n, lut = years[1] - years[0] + 1, len(GROUPS), code_lut(GROUPS)
+    dets = load_detections(history_dir, sensor, years)
+    found = {int(d["t"][:4]) for d in dets}
+    if found != set(range(years[0], years[1] + 1)):
+        raise ValueError(f"{sensor}: archive years {sorted(found)} do not cover {years}")
+    lon, lat = [d["lon"] for d in dets], [d["lat"] for d in dets]
+    x, y = to_3035(lon, lat)
+    inside = inside_fn(lon, lat)
+    starts = starts_for(dets, x, y, inside, grids, 24.0)
+    cube, per_ed, durations, unclassified = np.zeros((ny, 12, n)), {}, {g["id"]: [] for g in GROUPS}, 0
+    for s in starts:
+        if s["shares"] is None:
+            unclassified += 1
+            continue
+        cube[s["year"] - years[0], s["month"] - 1] += s["shares"]
+        per_ed[s["edition"]] = per_ed.get(s["edition"], 0) + 1
+        durations[GROUPS[int(np.argmax(s["shares"]))]["id"]].append(s["days"])
+    if unclassified > 0.005 * len(starts):
+        raise ValueError(f"{sensor}: {unclassified} of {len(starts)} fire starts have no CORINE land under them")
+    activity = np.zeros((12, n))
+    for i in np.nonzero(inside)[0]:
+        d = dets[i]
+        grid, left, top = grids[edition_for_year(int(d["t"][:4]))]
+        sh = window_shares(grid, left, top, CELL, x[i], y[i], d["scan"] * 500, d["track"] * 500, lut, n)
+        if sh is not None:
+            activity[int(d["t"][5:7]) - 1] += sh
+    by_group = cube.sum(axis=(0, 1))
+    land_w = weighted(land, per_ed)
+    area_w = sum(area[e] * w for e, w in per_ed.items()) / sum(per_ed.values())
+    rates = np.where(land_w > 0, (by_group / ny) / np.where(land_w > 0, land_w * area_w / 100, 1), 0.0)
+    total_48 = sum(1 for s in starts_for(dets, x, y, inside, grids, 48.0) if s["shares"] is not None)
+    return {
+        "starts": {"years": list(years), "gap_hours": 24, "total": len(starts) - unclassified, "total_48h": total_48,
+                   "unclassified": unclassified, "by_year_month_group": np.round(cube, 2).tolist(),
+                   "duration": {k: {"n": len(v), "median_days": round(float(np.median(v)), 1), "p90_days": round(float(np.percentile(v, 90)), 1)}
+                                for k, v in durations.items() if v}},
+        "activity": {"years": list(years), "detections": int(inside.sum()), "by_month_group": np.round(activity, 2).tolist()},
+        "catches": np.round(ratio(by_group, land_w), 2).tolist(), "catches_land": np.round(land_w, 4).tolist(),
+        "rates": np.round(rates, 3).tolist(), "by_group": by_group, "avg_month": cube.sum(axis=0) / ny,
+    }
+
+
+def nasa_burned(folder, grids, inside_fn):
+    """NASA MCD64A1 burned 500 m cells inside the country, shared over CORINE land (D4, D15)."""
+    manifest = json.loads((folder / "manifest.json").read_text())
+    need = {(y, m) for y in range(NASA_YEARS[0], NASA_YEARS[1] + 1) for m in range(1, 13)}
+    used = [g for g in manifest["granules"] if (g["year"], g["month"]) in need]
+    if {(g["year"], g["month"]) for g in used} != need or len(used) != len(need):
+        raise ValueError("MCD64A1 months missing or duplicated; run tools/fetch_mcd64a1.py")
+    lut, n = code_lut(GROUPS), len(GROUPS)
+    rows, per_ed, kept, dropped = np.zeros((NASA_YEARS[1] - NASA_YEARS[0] + 1, n)), {}, 0, 0
+    for g in used:
+        z = np.load(folder / g["crop"])
+        r, c = np.nonzero((z["burn_date"] >= 1) & (z["burn_date"] <= 366))
+        if not len(r):
+            continue
+        lon, lat = sin_to_lonlat(float(z["x0"]) + (c + 0.5) * PIXEL_M, float(z["y0"]) - (r + 0.5) * PIXEL_M)
+        ins = inside_fn(lon, lat)
+        if not ins.any():
+            continue
+        x, y = to_3035(lon[ins], lat[ins])
+        edition = edition_for_year(g["year"])
+        grid, left, top = grids[edition]
+        for xi, yi in zip(x, y):
+            sh = window_shares(grid, left, top, CELL, xi, yi, PIXEL_M / 2, PIXEL_M / 2, lut, n)
+            if sh is None:
+                dropped += 1
+                continue
+            kept += 1
+            rows[g["year"] - NASA_YEARS[0]] += sh * PIXEL_HA
+            per_ed[edition] = per_ed.get(edition, 0) + PIXEL_HA
+    if dropped > 0.005 * max(kept, 1):
+        raise ValueError(f"MCD64A1: {dropped} burned cells inside the country have no CORINE land")
+    return rows, per_ed, len(used)
+
+
+def _area(geom):
+    from rasterio.warp import transform_geom
+    from shapely.geometry import mapping, shape
+    return shape(transform_geom("EPSG:4326", "EPSG:3035", mapping(geom))).area
+
+
+def _rounded(geom):
+    def r(c):
+        return [round(c[0], 5), round(c[1], 5)] if isinstance(c[0], (int, float)) else [r(x) for x in c]
+    return {"type": geom["type"], "coordinates": r(geom["coordinates"])}
+
+
+def effis_burned(path, annual_path, mk):
+    """EFFIS mapped fires that intersect the country, clipped to it (D5, D14, D17).
+    Returns (aggregates, hectares per edition for fires >= 30 ha, >= 30 ha hectares per field, web features, mapping-check items)."""
+    from shapely.geometry import mapping, shape
+    from shapely.ops import unary_union
+    feats = json.loads(path.read_text())["features"]
+    nf = len(FIELDS)
+    y1 = max(int(f["properties"]["FIREDATE"][:4]) for f in feats)
+    ny = y1 - EFFIS_FIRST + 1
+    allr, ge30 = np.zeros((ny, nf)), np.zeros((ny, nf))
+    fires_all, fires_ge30 = [0] * ny, [0] * ny
+    per_ed, sizes, mk_ge30, web, check = {}, {f["id"]: [] for f in FIELDS}, {}, [], []
+    for f in feats:
+        p, g = f["properties"], shape(f["geometry"])
+        year = int(p["FIREDATE"][:4])
+        if year < EFFIS_FIRST or not g.intersects(mk):
+            continue
+        clip = g.intersection(mk)
+        if clip.geom_type == "GeometryCollection":
+            clip = unary_union([q for q in clip.geoms if q.geom_type in ("Polygon", "MultiPolygon")])
+        if clip.is_empty or clip.area == 0:
+            continue
+        sh = np.array([float(p[x["prop"]] or 0) for x in FIELDS])
+        if abs(sh.sum() - 100) > 1:
+            raise ValueError(f"EFFIS fire {p['id']}: land-cover shares sum to {sh.sum():.1f}")
+        area = float(p["AREA_HA"])
+        ha, big, k = area * _area(clip) / _area(g), area >= SMALL_HA, year - EFFIS_FIRST
+        allr[k] += ha * sh / 100
+        fires_all[k] += 1
+        if big:
+            ge30[k] += ha * sh / 100
+            fires_ge30[k] += 1
+            sizes[FIELDS[int(np.argmax(sh))]["id"]].append(area)
+            per_ed[edition_for_year(year)] = per_ed.get(edition_for_year(year), 0) + ha
+        if p["COUNTRY"] == "MK" and big:
+            c = mk_ge30.setdefault(year, [0, 0.0])
+            c[0] += 1
+            c[1] += area
+            if year >= 2018:
+                check.append((f["geometry"], sh, area))
+        web.append({"type": "Feature", "geometry": _rounded(mapping(clip.simplify(0.0002, preserve_topology=True))),
+                    "properties": {"id": str(p["id"]), "country": p["COUNTRY"], "year": year, "firedate": p["FIREDATE"][:10],
+                                   "finaldate": (p.get("FINALDATE") or "")[:10] or None, "area_ha": round(area),
+                                   "clipped_ha": round(ha, 1), "small": not big,
+                                   **{x["id"]: round(float(s), 1) for x, s in zip(FIELDS, sh)}}})
+    annual = {r["year"]: r for r in json.loads(annual_path.read_text())}
+    cross = [{"year": y, "fires": mk_ge30.get(y, [0, 0])[0], "ha": round(mk_ge30.get(y, [0, 0])[1]),
+              "estimate_fires": annual.get(y, {}).get("nf"), "estimate_ha": annual.get(y, {}).get("ba")} for y in range(EFFIS_FIRST, y1 + 1)]
+    spread = {k: {"n": len(v), "median_ha": round(float(np.median(v))), "p90_ha": round(float(np.percentile(v, 90))), "max_ha": round(max(v))}
+              for k, v in sizes.items() if v}
+    agg = {"years": [EFFIS_FIRST, y1], "all": {"by_year_field": np.round(allr, 1).tolist(), "fires": fires_all},
+           "ge30": {"by_year_field": np.round(ge30, 1).tolist(), "fires": fires_ge30}, "cross_check": cross, "spread": spread}
+    return agg, per_ed, ge30.sum(axis=0), web, check
+
+
+def check_field_mapping(items, grid, left, top):
+    """EFFIS derives each fire's shares from CORINE; the code-to-field table must reproduce them within 5 points (spec risk)."""
+    from rasterio.features import geometry_mask
+    from rasterio.transform import from_origin
+    from rasterio.warp import transform_geom
+    from shapely.geometry import shape
+    lut, nf = code_lut(FIELDS), len(FIELDS)
+    rows, cols = grid.shape
+    ours, theirs = np.zeros(nf), np.zeros(nf)
+    for geom, sh, area in items:
+        g = transform_geom("EPSG:4326", "EPSG:3035", geom)
+        w, s, e, n = shape(g).bounds
+        c0, c1 = max(0, math.floor((w - left) / CELL)), min(cols, math.ceil((e - left) / CELL))
+        r0, r1 = max(0, math.floor((top - n) / CELL)), min(rows, math.ceil((top - s) / CELL))
+        if c1 <= c0 or r1 <= r0:
+            continue
+        win = grid[r0:r1, c0:c1]
+        inside = geometry_mask([g], out_shape=win.shape, transform=from_origin(left + c0 * CELL, top - r0 * CELL, CELL, CELL), invert=True)
+        counts = np.bincount(lut[win[inside]], minlength=nf + 1)[:nf]
+        if counts.sum():
+            ours += area * counts / counts.sum()
+            theirs += area * sh / 100
+    a, b = 100 * ours / ours.sum(), 100 * theirs / theirs.sum()
+    table = {f["id"]: [round(float(x), 1), round(float(y), 1)] for f, x, y in zip(FIELDS, a, b)}
+    if np.abs(a - b).max() > 5:
+        raise ValueError(f"CORINE-to-EFFIS field table disagrees with EFFIS by up to {np.abs(a - b).max():.1f} points (ours, EFFIS): {table}")
+    return table

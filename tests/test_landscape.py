@@ -103,5 +103,76 @@ class Grouping(unittest.TestCase):
         self.assertEqual(len(firelib.cluster(dets, 48.0)), 1)
 
 
+class FetchChecks(unittest.TestCase):
+    def test_corine_features_must_be_coded_polygons(self):
+        import fetch_landscape as fl
+        poly = {"type": "Polygon", "coordinates": [[[21, 41], [21.1, 41], [21.1, 41.1], [21, 41]]]}
+        fl.check_features([{"properties": {"Code_18": "311"}, "geometry": poly}], "Code_18")
+        for bad in ({"properties": {"Code_18": "31"}, "geometry": poly},
+                    {"properties": {"Code_18": "311"}, "geometry": {"type": "Point", "coordinates": [21, 41]}}):
+            with self.assertRaises(ValueError):
+                fl.check_features([bad], "Code_18")
+
+
+def box(w, s, e, n):
+    return {"type": "Polygon", "coordinates": [[[w, s], [e, s], [e, n], [w, n], [w, s]]]}
+
+
+class StartsAndBurns(unittest.TestCase):
+    """Synthetic country 21-22 E, 41-42 N: broadleaf west of 21.5 E, pasture east of it."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.country = box(21.0, 41.0, 22.0, 42.0)
+        feats = [{"type": "Feature", "properties": {"Code_18": "311"}, "geometry": box(20.9, 40.9, 21.5, 42.1)},
+                 {"type": "Feature", "properties": {"Code_18": "231"}, "geometry": box(21.5, 40.9, 22.1, 42.1)}]
+        grid = ls.land_grid(feats, "Code_18", cls.country, "EPSG:3035", ls.CELL)
+        cls.grids = {e: grid for e in ls.EDITIONS}
+
+    def test_land_grid_keeps_only_the_country(self):
+        grid = self.grids[2018][0]
+        self.assertEqual(set(np.unique(grid)), {0, 231, 311})
+
+    def test_start_is_classed_by_its_first_detection(self):
+        from shapely.geometry import shape
+        dets = [{"id": "a", "t": "2020-08-01T10:00Z", "lat": 41.5, "lon": 21.2, "frp": 5, "scan": 0.4, "track": 0.4},
+                {"id": "b", "t": "2020-08-02T09:00Z", "lat": 41.505, "lon": 21.21, "frp": 5, "scan": 0.4, "track": 0.4},
+                {"id": "c", "t": "2020-03-05T12:00Z", "lat": 41.5, "lon": 21.8, "frp": 5, "scan": 0.4, "track": 0.4},
+                {"id": "d", "t": "2020-03-05T12:00Z", "lat": 41.5, "lon": 22.5, "frp": 5, "scan": 0.4, "track": 0.4}]
+        lon, lat = [d["lon"] for d in dets], [d["lat"] for d in dets]
+        x, y = ls.to_3035(lon, lat)
+        inside = ls.point_test(shape(self.country))(lon, lat)
+        starts = sorted(ls.starts_for(dets, x, y, inside, self.grids, 24.0), key=lambda s: s["month"])
+        self.assertEqual([s["month"] for s in starts], [3, 8])  # "d" starts outside the country
+        self.assertAlmostEqual(starts[0]["shares"][4], 1.0)    # pasture -> grassland and pasture
+        self.assertAlmostEqual(starts[1]["shares"][0], 1.0)    # broadleaf
+        self.assertAlmostEqual(starts[1]["days"], 23 / 24)
+
+    def test_effis_fire_is_clipped_and_split_by_size(self):
+        import json
+        import tempfile
+        from shapely.geometry import shape
+
+        def props(i, area, year):
+            return {"id": i, "COUNTRY": "MK", "FIREDATE": f"{year}-08-01 00:00:00", "FINALDATE": None, "AREA_HA": area,
+                    "BROADLEA": 60, "CONIFER": 0, "MIXED": 0, "SCLEROPH": 0, "TRANSIT": 0, "OTHERNATLC": 40,
+                    "AGRIAREAS": 0, "ARTIFSURF": 0, "OTHERLC": 0}
+        fires = {"type": "FeatureCollection", "features": [
+            {"type": "Feature", "properties": props(1, 100, 2020), "geometry": box(21.95, 41.4, 22.05, 41.5)},  # half outside
+            {"type": "Feature", "properties": props(2, 10, 2021), "geometry": box(21.3, 41.3, 21.31, 41.31)},   # small
+            {"type": "Feature", "properties": props(3, 50, 2019), "geometry": box(22.5, 41.3, 22.6, 41.4)}]}    # outside
+        with tempfile.TemporaryDirectory() as tmp:
+            p, a = Path(tmp) / "f.geojson", Path(tmp) / "a.json"
+            p.write_text(json.dumps(fires))
+            a.write_text(json.dumps([{"year": 2020, "ba": 100, "nf": 1}]))
+            agg, per_ed, by_field, web, check = ls.effis_burned(p, a, shape(self.country))
+        self.assertEqual(agg["years"], [2016, 2021])
+        self.assertAlmostEqual(agg["all"]["by_year_field"][4][0], 30.0, delta=0.5)  # 60 % of the ~50 ha inside
+        self.assertEqual(agg["ge30"]["fires"][5], 0)
+        self.assertEqual([f["properties"]["small"] for f in web], [False, True])
+        self.assertEqual(agg["cross_check"][4], {"year": 2020, "fires": 1, "ha": 100, "estimate_fires": 1, "estimate_ha": 100})
+        self.assertEqual(len(check), 1)
+
+
 if __name__ == "__main__":
     unittest.main()
