@@ -142,10 +142,6 @@ describe.runIf(hasData)('generated public data', () => {
     const m = read('stories/mariovo-2024.json');
     expect(m.reference.status).toBe('unconfirmed_secondary_geometry');
     expect(m.inside_reference_detection_check).toMatchObject({ modis: 16, 'viirs-jpss1': 259, 'viirs-snpp': 263 }); // NOAA-21 added later, reported separately
-    const e = read('current/effis-season.json');
-    const last = [...e.cumulative].reverse().find((r: { area_ha: number | null }) => r.area_ha !== null);
-    expect([last.area_ha, last.events, last.mddate]).toEqual([25323, 69, '20261111']);
-    expect(e.cumulative.at(-1).area_ha).toBeNull();
     const firms = read('current/firms-sample.json');
     expect(firms.delivery).toBe('saved_sample');
     expect(firms.sources.map((x: { detections: unknown[] }) => x.detections.length)).toEqual([3, 1]);

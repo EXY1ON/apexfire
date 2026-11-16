@@ -8,6 +8,7 @@ import { bearingSpread, haversineKm, pointInGeometry, wedge } from '../lib/geo';
 import { SENSOR_LABEL } from '../lib/history';
 import { fwiClass, fwiMeaning, FWI_CLASSES } from '../lib/fwi';
 import { useExpert } from '../lib/mode';
+import { lastPublished, useEffisSeason } from '../lib/effis';
 import { AQ_POINT, eaqiBand, useAirQuality, usePointWeather, useLiveWind, type AqKey, type PointWeather } from '../lib/openmeteo';
 import { newSince, toggleFollow, useFollows } from '../lib/follow';
 import { addLayers, CLUSTER, clusterLayers, expandCluster, markLayer, sensorPointLayer, SensorMark, setGeoJSON, setRaster } from '../components/MapView';
@@ -18,8 +19,6 @@ import { WindParticles } from '../components/WindParticles';
 import { buildField } from '../lib/wind-field';
 import { useMapCleanup, type ModeProps } from './Explore';
 
-interface EffisRow { week: number; mddate: string; events: number | null; area_ha: number | null; events_avg: number | null; area_ha_avg: number | null; min_year: number }
-interface EffisSeason { retrieved_utc: string; product: string; source_url: string; credit: string; reference_note: string; weekly: EffisRow[]; cumulative: EffisRow[]; annual: { year: number; ba: number; nf: number }[] }
 interface WindPoint { requested: [number, number]; grid: [number, number]; elevation_m: number; speed: number[]; dir: number[]; gust: number[] }
 export interface WindGrid { retrieved_utc: string; model_requested: string; model_run_time: string | null; credit: string; note: string; spacing_deg: number; times: string[]; points: WindPoint[]; delivery?: string }
 export interface RecentDet { id: string; sensor: SensorKey; product: string; t: string; lat: number; lon: number; conf: number | string; frp: number; dn: 'D' | 'N'; ver: string; inside: boolean; fire: string }
@@ -28,7 +27,6 @@ export interface Fire { id: string; lat: number; lon: number; first_seen: string
 interface Recent { delivery?: 'saved_sample' | 'live'; retrieved_utc: string; window_start: string; window_end: string; latest_acquisition: string | null; bbox_wgs84: [number, number, number, number];
   products: string[]; grouping: string; credit: string; detections: RecentDet[]; fires: Fire[] }
 
-const vEffis = validateDoc<EffisSeason>('firewatch.effis.season.v1', ['weekly', 'cumulative', 'annual']);
 function vRecent(raw: unknown, path: string): Recent {
   const r = validateDoc<Recent>('firewatch.current.recent.v1', ['detections', 'fires', 'window_end'])(raw, path);
   if (!Array.isArray(r.detections) || !Array.isArray(r.fires)) fail(path, 'detections and fires must be arrays');
@@ -48,7 +46,6 @@ export function validateWind(raw: unknown, path: string): WindGrid {
 
 // Static arrows (reduced motion) use every other point of the dense live grid, one per 0.25°, so they stay readable.
 const onQuarterDegree = ([lat, lon]: [number, number]) => Math.abs(((lat - 40.875) / 0.25) % 1) < 1e-6 && Math.abs(((lon - 20.5) / 0.25) % 1) < 1e-6;
-const lastNonNull = (rows: EffisRow[]) => [...rows].reverse().find((r) => r.area_ha !== null);
 const mdDate = (n?: string) => (n ? `${n.slice(0, 4)}-${n.slice(4, 6)}-${n.slice(6, 8)}` : 'unknown');
 const hoursBefore = (iso: string, h: number) => new Date(Date.parse(iso) - h * 3600e3).toISOString().slice(0, 16) + 'Z';
 
@@ -117,7 +114,6 @@ export function NowMode({ map, state, update, shell, openSheet, focus, reduced }
   const recent = useRecent();
   const saved = useData('current/wind-grid.json', validateWind);
   const live = useLiveWind();
-  const effis = useData('current/effis-season.json', vEffis);
   const boundary = useData('boundary-mk.geojson', validateGeoJSON);
   const follows = useFollows();
   const [hour, setHour] = useState<number | null>(null);
@@ -291,7 +287,7 @@ export function NowMode({ map, state, update, shell, openSheet, focus, reduced }
         )}
         <p className="hint">{expert ? 'Stored only in this browser. Push and email alerts are not built yet.' : 'Saved only on this device. New sightings are counted each time you open ApexFire; there are no phone alerts yet.'}</p>
       </section>
-      {expert && effis.data && <EffisPanel e={effis.data} />}
+      {expert && <EffisPanel />}
       {expert && <AirPanel />}
       {expert && <WeatherPanel />}
       {expert && <section aria-labelledby="health-h">
@@ -587,33 +583,41 @@ function WeatherPanel() {
   );
 }
 
-function EffisPanel({ e }: { e: EffisSeason }) {
-  const latest = lastNonNull(e.cumulative)!;
+/** Live EFFIS season statistics, requested by the browser while the Expert view is open. */
+function EffisPanel() {
+  const { data: e, error } = useEffisSeason();
+  const latest = e && lastPublished(e.cumulative);
   const W = 300; const H = 96;
-  const max = Math.max(...e.cumulative.map((r) => Math.max(r.area_ha ?? 0, r.area_ha_avg ?? 0)));
-  const x = (w: number) => ((w - 1) / 51) * W;
+  const max = e ? Math.max(1, ...e.cumulative.map((r) => Math.max(r.area_ha ?? 0, r.area_ha_avg ?? 0))) : 1;
+  const x = (w: number) => ((w - 1) / ((e?.cumulative.length ?? 52) - 1)) * W;
   const y = (v: number) => H - (v / max) * H;
-  const line = (key: 'area_ha' | 'area_ha_avg') => e.cumulative.filter((r) => r[key] !== null).map((r, i) => `${i ? 'L' : 'M'}${x(r.week).toFixed(1)},${y(r[key]!).toFixed(1)}`).join('');
+  const line = (key: 'area_ha' | 'area_ha_avg') => (e?.cumulative ?? []).filter((r) => r[key] !== null).map((r, i) => `${i ? 'L' : 'M'}${x(r.week).toFixed(1)},${y(r[key]!).toFixed(1)}`).join('');
   return (
     <section aria-labelledby="effis-h">
-      <IconHeading icon="chart" id="effis-h" className="h3">The 2026 season, as mapped by EFFIS</IconHeading>
-      <p className="kind-tag">Mapped burned area, a different product from detections</p>
-      <p className="big-fig num">{fmtInt(latest.area_ha!)} <span className="small">ha mapped</span></p>
-      <p className="small muted" style={{ marginTop: 0 }}>{fmtInt(latest.events!)} mapped events to the week ending {mdDate(latest.mddate)}. EFFIS reference average for that week: {fmtInt(latest.area_ha_avg ?? 0)} ha, {fmt1(latest.events_avg ?? 0)} events.</p>
-      <svg viewBox={`-2 -4 ${W + 4} ${H + 20}`} width="100%" role="img" aria-label={`Cumulative 2026 mapped area reaching ${fmtInt(latest.area_ha!)} ha by week ${latest.week}, against the EFFIS reference average.`}>
-        <path d={line('area_ha_avg')} fill="none" stroke="var(--faint)" strokeWidth="1.4" strokeDasharray="4 3" />
-        <path d={line('area_ha')} fill="none" stroke="#FF6A00" strokeWidth="2.2" />
-        <text x="0" y={H + 13} fontSize="9" fill="var(--faint)">week 1</text><text x={W} y={H + 13} fontSize="9" fill="var(--faint)" textAnchor="end">week 52</text>
-      </svg>
-      <p className="small muted"><span className="swatch" style={{ background: '#FF6A00' }} aria-hidden />2026 cumulative <span className="swatch dash" aria-hidden />reference average</p>
-      <details>
-        <summary>Annual mapped area 2006–2026</summary>
-        <div className="table-scroll"><table className="compact">
-          <thead><tr><th scope="col">Year</th><th scope="col">Mapped ha</th><th scope="col">Events</th></tr></thead>
-          <tbody>{e.annual.map((r) => <tr key={r.year}><th scope="row">{r.year}{r.year === 2026 ? ' (partial)' : ''}</th><td>{fmtInt(r.ba)}</td><td>{fmtInt(r.nf)}</td></tr>)}</tbody>
-        </table></div>
-      </details>
-      <p className="hint">{e.product}. Later weeks are not yet published (null, not zero). Mapped events are not confirmed active incidents or detection counts. Third-party dashboards show different totals; this is the original EFFIS response ({e.reference_note}). {e.credit}.</p>
+      <IconHeading icon="chart" id="effis-h" className="h3">The {e?.year ?? skopjeToday().slice(0, 4)} season, as mapped by EFFIS</IconHeading>
+      <p className="kind-tag">Live mapped burned area, a different product from detections</p>
+      {error ? <p className="hint" role="status">EFFIS statistics could not load ({error}). Nothing is shown in their place.</p>
+        : !e ? <p className="hint" role="status">Loading EFFIS season statistics…</p>
+        : <>
+          {latest ? <>
+            <p className="big-fig num">{fmtInt(latest.area_ha!)} <span className="small">ha mapped</span></p>
+            <p className="small muted" style={{ marginTop: 0 }}>{fmtInt(latest.events!)} mapped events to the week ending {mdDate(latest.mddate)}. EFFIS reference average for that week: {fmtInt(latest.area_ha_avg ?? 0)} ha, {fmt1(latest.events_avg ?? 0)} events.</p>
+          </> : <p className="small muted">EFFIS has not published a week of {e.year} yet.</p>}
+          <svg viewBox={`-2 -4 ${W + 4} ${H + 20}`} width="100%" role="img" aria-label={latest ? `Cumulative ${e.year} mapped area reaching ${fmtInt(latest.area_ha!)} ha by week ${latest.week}, against the EFFIS reference average.` : 'EFFIS reference average of cumulative mapped area by week.'}>
+            <path d={line('area_ha_avg')} fill="none" stroke="var(--faint)" strokeWidth="1.4" strokeDasharray="4 3" />
+            <path d={line('area_ha')} fill="none" stroke="#FF6A00" strokeWidth="2.2" />
+            <text x="0" y={H + 13} fontSize="9" fill="var(--faint)">week 1</text><text x={W} y={H + 13} fontSize="9" fill="var(--faint)" textAnchor="end">week {e.cumulative.length}</text>
+          </svg>
+          <p className="small muted"><span className="swatch" style={{ background: '#FF6A00' }} aria-hidden />{e.year} cumulative <span className="swatch dash" aria-hidden />reference average</p>
+          <details>
+            <summary>Annual mapped area {e.annual[0].year}–{e.annual.at(-1)!.year}</summary>
+            <div className="table-scroll"><table className="compact">
+              <thead><tr><th scope="col">Year</th><th scope="col">Mapped ha</th><th scope="col">Events</th></tr></thead>
+              <tbody>{e.annual.map((r) => <tr key={r.year}><th scope="row">{r.year}{r.year === e.year ? ' (partial)' : ''}</th><td>{fmtInt(r.ba)}</td><td>{fmtInt(r.nf)}</td></tr>)}</tbody>
+            </table></div>
+          </details>
+          <p className="hint">EFFIS Rapid Damage Assessment mapped burned areas (weekly and cumulative statistics), fetched by your browser {ageText(e.retrieved_utc)}. Later weeks are not yet published (empty, not zero). Mapped events are not confirmed active incidents or detection counts. Third-party dashboards show different totals; these are the original <a href={e.source_url} target="_blank" rel="noopener">EFFIS weekly</a> and <a href={e.annual_source_url} target="_blank" rel="noopener">annual</a> responses (the reference average/min/max are EFFIS fields for the same week since {latest?.min_year ?? e.cumulative[0].min_year}). European Forest Fire Information System (EFFIS), Copernicus Emergency Management Service, CC BY 4.0.</p>
+        </>}
     </section>
   );
 }

@@ -502,25 +502,7 @@ def export_current():
         "credit": FIRMS_CREDIT, "sources": sources,
     })
     # Named-point weather is fetched live by the browser (Now.tsx WeatherPanel), so no weather sample is exported.
-    added = {a["path"].split("/")[-1]: a for a in json.loads((ADDED / "manifest.json").read_text())["assets"]}
-    # Air quality is fetched live by the browser (web/src/lib/openmeteo.ts), so no CAMS sample is exported.
-    weekly = json.loads((ADDED / "effis-weekly-mkd-2026.json").read_text())
-    annual = json.loads((ADDED / "effis-annual-mkd.json").read_text())
-    nonnull = [r for r in weekly["banfcumulative"] if r["area_ha"] is not None]
-    latest = nonnull[-1]
-    if (latest["area_ha"], latest["events"], str(latest["mddate"])) != (25323, 69, "20261111"):
-        raise ValueError("EFFIS latest cumulative row changed from verified 11 Nov 2026 25,323 ha / 69 events")
-    write_json(OUT / "current" / "effis-season.json", {
-        "schema": "firewatch.effis.season.v1", "data_class": "seasonal_burned_area_statistics", "delivery": "saved_sample",
-        "retrieved_utc": added["effis-weekly-mkd-2026.json"]["retrieved_utc"], "country": "MKD", "year": 2026,
-        "product": "EFFIS Rapid Damage Assessment mapped burned areas (weekly and cumulative statistics)",
-        "source_url": added["effis-weekly-mkd-2026.json"]["source_url"], "annual_source_url": added["effis-annual-mkd.json"]["source_url"],
-        "credit": "European Forest Fire Information System (EFFIS), Copernicus Emergency Management Service, CC BY 4.0",
-        "units": {"area_ha": "hectares mapped", "events": "mapped burned-area events"},
-        "reference_note": "avg/min/max are EFFIS-supplied reference fields for the same week; min_year in source is 2006.",
-        "weekly": weekly["banfweekly"], "cumulative": weekly["banfcumulative"], "annual": annual,
-    })
-
+    # Air quality (web/src/lib/openmeteo.ts) and EFFIS season statistics (web/src/lib/effis.ts) are fetched live by the browser, so no samples are exported.
 
 def export_wind():
     """Latest saved Open-Meteo wind grid (tools/fetch_wind_grid.py) as compact per-point hourly arrays."""
