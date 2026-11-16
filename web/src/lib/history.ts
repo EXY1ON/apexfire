@@ -79,7 +79,7 @@ export function yearNotes(year: number, catalog: Catalog): string[] {
   return notes;
 }
 
-const csvCell = (v: unknown) => {
+export const csvCell = (v: unknown) => {
   const s = String(v ?? '');
   return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 };

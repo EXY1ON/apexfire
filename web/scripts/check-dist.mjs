@@ -5,7 +5,7 @@ import { gzipSync } from 'node:zlib';
 import { join, relative } from 'node:path';
 
 const dist = new URL('../dist/', import.meta.url).pathname;
-const allowed = [/^index\.html$/, /^apexfire-(icon|logo)\.svg$/, /^apexfire-share\.png$/, /^assets\/[\w.-]+\.(js|css|mjs|woff2|woff)$/, /^data\/[\w/.-]+\.(json|geojson|jpg|txt)$/];
+const allowed = [/^index\.html$/, /^apexfire-(icon|logo)\.svg$/, /^apexfire-share\.png$/, /^assets\/[\w.-]+\.(js|css|mjs|woff2|woff)$/, /^data\/[\w/.-]+\.(json|geojson|jpg|png|txt)$/];
 const forbidden = [/Token-and-key/i, /MAP_KEY\s*[:=]/, /[A-Fa-f0-9]{32}(?![A-Fa-f0-9])/, /Bearer\s+[A-Za-z0-9._-]{20,}/, /\/Users\//, /\.venv/, /firebase-adminsdk/i, /BEGIN (RSA |EC )?PRIVATE KEY/];
 const files = [];
 const walk = (d) => readdirSync(d).forEach((n) => { const p = join(d, n); statSync(p).isDirectory() ? walk(p) : files.push(p); });
