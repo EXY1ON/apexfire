@@ -3,7 +3,7 @@ import { fmtInt } from '../lib/format';
 export interface Series { label: string; color: string }
 
 /** Stacked bars, one per category and one segment per series; values[category][series]. Inline SVG like the site's other charts. */
-export function StackedBars({ categories, series, values, label, unit, fmt = fmtInt }: {
+export function StackedBars({ categories, series, values, label, unit, fmt = (v: number) => fmtInt(Math.round(v)) }: {
   categories: string[]; series: Series[]; values: number[][]; label: string; unit: string; fmt?: (v: number) => string;
 }) {
   const W = 320; const H = 130; const n = categories.length; const bw = W / n;
