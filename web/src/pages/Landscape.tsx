@@ -129,7 +129,7 @@ export function Landscape() {
             {burned.error && <p className="error small" role="alert">{burned.error}</p>}
             {picked ? <p className="small" role="status"><strong>{fmtInt(Number(picked.area_ha))} ha mapped, {String(picked.firedate)}{picked.finaldate ? ` to ${String(picked.finaldate)}` : ''}</strong>
               {picked.small ? ' · under 30 ha, so not counted in the charts' : ''}<br />
-              {d.raw_fields.filter((f) => Number(picked[f.id]) > 0).map((f) => `${f.label} ${fmt1(Number(picked[f.id]))} %`).join(' · ')}</p>
+              {d.raw_fields.filter((f) => Number(picked[f.id]) > 0).map((f) => `${f.label} ${fmt1(Number(picked[f.id]))} %`).join(' · ') || 'EFFIS has not given a land-cover breakdown for this fire yet.'}</p>
               : <p className="hint">Tap a burned area for its dates, size and what it burned.</p>}
             {largest.length > 0 && <details><summary>Largest mapped fires in {year}</summary><ul className="plain">{largest.map((f) => (
               <li key={String(f.properties?.id)}><button type="button" className="link-btn" onClick={() => setPicked(f.properties ?? null)}>{fmtInt(Number(f.properties?.area_ha))} ha from {String(f.properties?.firedate)}</button></li>))}</ul></details>}

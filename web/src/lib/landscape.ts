@@ -13,7 +13,7 @@ export interface Starts {
   by_year_month_group: number[][][]; duration: Record<string, { n: number; median_days: number; p90_days: number }>;
 }
 export interface Activity { years: [number, number]; detections: number; by_month_group: number[][] }
-export interface EffisSeries { by_year_field: number[][]; fires: number[] }
+export interface EffisSeries { by_year_field: number[][]; fires: number[]; unshared_ha?: number[] }
 export interface LandscapeDoc {
   schema: 'firewatch.landscape.v1'; generated_utc: string; export_date: string;
   groups: LcClass[]; fields: LcClass[]; raw_fields: { id: string; label: string }[]; editions: number[];

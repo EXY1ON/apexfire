@@ -387,7 +387,7 @@ def effis_burned(path, annual_path, mk):
     y1 = max(int(f["properties"]["FIREDATE"][:4]) for f in feats)
     ny = y1 - EFFIS_FIRST + 1
     allr, ge30 = np.zeros((ny, nf)), np.zeros((ny, nf))
-    fires_all, fires_ge30 = [0] * ny, [0] * ny
+    fires_all, fires_ge30, unshared = [0] * ny, [0] * ny, [0.0] * ny
     per_ed, sizes, mk_ge30, web, check = {}, {f["id"]: [] for f in FIELDS}, {}, [], []
     for f in feats:
         p, g = f["properties"], shape(f["geometry"])
@@ -401,12 +401,18 @@ def effis_burned(path, annual_path, mk):
             continue
         raw = [float(p[k] or 0) for k, _, _ in RAW_FIELDS]
         sh = np.array([sum(float(p[k] or 0) for k in x["props"]) for x in FIELDS])
-        if abs(sh.sum() - 100) > 1:
-            raise ValueError(f"EFFIS fire {p['id']}: land-cover shares sum to {sh.sum():.1f}")
         area = float(p["AREA_HA"])
         ha, big, k = area * _area(clip) / _area(g), area >= SMALL_HA, year - EFFIS_FIRST
-        allr[k] += ha * sh / 100
+        # EFFIS leaves a few small, recent fires without a land-cover breakdown (13 fires, 9 ha on 16 Nov 2026):
+        # they stay on the map and in the counts, and their area is reported apart instead of being guessed.
+        no_shares = sh.sum() < 1 and not big
+        if abs(sh.sum() - 100) > 1 and not no_shares:
+            raise ValueError(f"EFFIS fire {p['id']}: land-cover shares sum to {sh.sum():.1f}")
         fires_all[k] += 1
+        if no_shares:
+            unshared[k] += ha
+        else:
+            allr[k] += ha * sh / 100
         if big:
             ge30[k] += ha * sh / 100
             fires_ge30[k] += 1
@@ -428,7 +434,7 @@ def effis_burned(path, annual_path, mk):
               "estimate_fires": annual.get(y, {}).get("nf"), "estimate_ha": annual.get(y, {}).get("ba")} for y in range(EFFIS_FIRST, y1 + 1)]
     spread = {k: {"n": len(v), "median_ha": round(float(np.median(v))), "p90_ha": round(float(np.percentile(v, 90))), "max_ha": round(max(v))}
               for k, v in sizes.items() if v}
-    agg = {"years": [EFFIS_FIRST, y1], "all": {"by_year_field": np.round(allr, 1).tolist(), "fires": fires_all},
+    agg = {"years": [EFFIS_FIRST, y1], "all": {"by_year_field": np.round(allr, 1).tolist(), "fires": fires_all, "unshared_ha": [round(v, 1) for v in unshared]},
            "ge30": {"by_year_field": np.round(ge30, 1).tolist(), "fires": fires_ge30}, "cross_check": cross, "spread": spread}
     return agg, per_ed, ge30.sum(axis=0), web, check
 
