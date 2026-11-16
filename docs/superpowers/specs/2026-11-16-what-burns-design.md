@@ -1,6 +1,6 @@
 # What burns in North Macedonia — design (slice 1 of 4)
 
-16 Nov 2026 · Status: **25 decisions agreed in grilling; awaiting SAI approval** · Builder: Claude · Reviewer: Codex · Sources: [nature data survey](../../research/nature-data-sources-2026-11-16.md)
+16 Nov 2026 · Status: **approved by SAI (25 grilling decisions + D26)** · Builder: Claude · Reviewer: Codex · Sources: [nature data survey](../../research/nature-data-sources-2026-11-16.md)
 
 ## Goal
 
@@ -16,7 +16,7 @@ Done when `/landscape` shows all three from exported, validated data, both map l
 
 ## Decisions
 
-Agreed with SAI in three grilling rounds on 16 Nov 2026. Sections below implement them; a change to any of these reopens the design.
+Agreed with SAI in three grilling rounds on 16 Nov 2026 (D1–D25) and while planning (D26). Sections below implement them; a change to any of these reopens the design.
 
 | # | Decision |
 | --- | --- |
@@ -45,6 +45,7 @@ Agreed with SAI in three grilling rounds on 16 Nov 2026. Sections below implemen
 | D23 | Expert downloads: `what-burns.json`, `burned-areas.geojson` and one CSV per chart table (built in the browser with the existing `download()` helper), each with credits and licences. |
 | D24 | Only North Macedonia crops of the MCD64A1 granules are kept, with each granule ID and SHA-256; full tiles are deleted after cropping and can be re-downloaded by ID. |
 | D25 | The export is re-run by hand after each fire season and whenever EFFIS revises a year; the routine is recorded in PROJECT.md; no scheduled job. |
+| D26 | MCD64A1 comes from NASA LP DAAC for all 300 months (Planetary Computer lacks Sep 2023, Jul 2024, May and Aug–Oct 2025). The HDF4 files are read with pyhdf (MIT) in `tools/fetch_mcd64a1.py`, run by `uv run --python 3.14` with its dependencies declared in the script; the project `.venv` is unchanged. |
 
 ## Sources
 
@@ -53,7 +54,7 @@ Agreed with SAI in three grilling rounds on 16 Nov 2026. Sections below implemen
 | CORINE Land Cover 2000, 2006, 2012, 2018 vector (EEA, Copernicus Land) | Land grids per edition (D3), land shares, start classes, map layer (2018) | EEA MapServer `Corine/CLC{year}_WM/MapServer/0/query`, GeoJSON, 1,000 features per page, no login; each edition covers MK (~1,400 polygons in central MK each; 18,917 in the MK box for 2018) | © European Union, Copernicus Land Monitoring Service, EEA; free with attribution |
 | EFFIS burned areas `ms:modis.ba.poly` (all years) | Burned area by EFFIS field, fire sizes, burned-area layer | One WFS GeoJSON request over the MK box returns 2016–2026 (1,244 MK fires, 262,341 ha; 12.5 MB with neighbours), CORS `*` | EFFIS, European Commission JRC, CC BY 4.0 |
 | EFFIS annual estimates | Cross-check of yearly totals | statistics API (already live on Fires now) | as above |
-| NASA MCD64A1 v061 | Burned area 2001–2025 (D4, D15) | Monthly HDF granules of tile h19v04 (covers all of MK) via Earthdata login; reader exists in `tools/fetch_mariovo_data.py` | NASA LP DAAC, open data |
+| NASA MCD64A1 v061 | Burned area 2001–2025 (D4, D15) | 300 monthly HDF4 granules of tile h19v04 (covers all of MK; 1.2 GB) listed by NASA CMR and downloaded from LP DAAC with the Earthdata bearer (D26) | NASA LP DAAC, open data |
 | ApexFire detection archive (`web/public/data/history`) | Fire starts, activity, duration | local; `type` 0 vegetation, 2 static land source, 3 offshore, 9 unknown (2026 NRT) | NASA FIRMS |
 
 Static sources are a large share of the archive (type 2: 8,307 of 18,544 MODIS and 14,926 of 41,630 S-NPP detections), so only type 0 is used.
@@ -81,13 +82,13 @@ EFFIS charts keep EFFIS's own nine fields, never re-split; their land shares for
 
 Follows the existing pattern: a fetch tool caches raw inputs with a manifest; `tools/export_web_data.py` validates and writes compact web files. No new Python dependencies (numpy, shapely, rasterio and Pillow are installed).
 
-**`tools/fetch_landscape.py`** (new) writes to `Data/readiness/landscape/` with a manifest of URL, SHA-256 and retrieval time per file:
+**`tools/fetch_landscape.py`** (new) writes to `Data/readiness/landscape/` with a manifest of URL, SHA-256 and retrieval time per file. It fetches:
 
 - CORINE vector for each of the four editions, paged over the MK box. It refuses short pages and non-polygon geometry.
 - The EFFIS `ms:modis.ba.poly` response. It refuses a response whose `numberMatched` differs from the features returned.
-- MCD64A1 h19v04, one granule per month for 2001–2025. Each granule is cropped to the MK box (Burn_Date and QA layers), and its ID and SHA-256 are kept before the full tile is deleted (D24).
+- **`tools/fetch_mcd64a1.py`** (new, D26) lists MCD64A1 h19v04 granules for 2001–2025 in NASA CMR, downloads each from LP DAAC with the Earthdata bearer, crops Burn Date and QA to the MK box, and saves the crop with its granule ID and SHA-256 before deleting the HDF (D24).
 
-**`export_landscape()`** in the export:
+**`tools/landscape.py`** (new) holds the land-cover tables, the pure helpers and `export()`, which `tools/export_web_data.py` calls:
 
 1. **Land grids.** Rasterise each CORINE edition, clipped to the 2016 boundary, at 100 m in EPSG:3035 for statistics. Rasterise 2018 once more in Web Mercator for display. Compute each group's and each EFFIS field's share of land per edition.
 2. **Fire starts.** Take archive rows with `type = 0` for full years only: MODIS 2001–2025, S-NPP 2012–2025, NOAA-20 2018–2025 (D11, D12). Group them per sensor with `tools/firelib.py` (2 km / 24 h, D13). Keep a start only if its first detection is inside the boundary (D17). The start's land comes from the first detection's footprint: the `scan` × `track` km rectangle around its centre, giving fractional group shares from that year's edition (D3). A 1 km MODIS pixel half over pasture and half over oak counts 0.5 to each. Each start records month, year, group shares and duration (first to last detection, in days). The same counts are also computed with a 48 h gap for the Expert sensitivity line.
@@ -114,7 +115,7 @@ Follows the existing pattern: a fetch tool caches raw inputs with a manifest; `t
 
 ## Page
 
-**Route `/landscape`** (D1). It is built like the Stories pages: a text column on the left, the map on the right, and a bottom sheet on phones. Charts are inline SVG in the style of the EFFIS season panel, with no chart library. Sections follow D20:
+**Route `/landscape`** (D1). It uses the fire-story layout: the map on the left and a text column on the right, stacked map-first on phones. Charts are inline SVG in the style of the EFFIS season panel, with no chart library. Sections follow D20:
 
 1. **Takeaways.** Simple shows the three generated sentences (D18). Expert shows them with the values they quote.
 2. **Map** (D21). The land-cover layer (2018) and every mapped burned area in one colour, with a year selector (All, 2016 … 2026). Tapping a burned area shows its year, dates, hectares, land-cover shares and a "smaller than 30 ha" note where it applies.
@@ -130,6 +131,7 @@ Follows the existing pattern: a fetch tool caches raw inputs with a manifest; `t
    - the 30 ha rule;
    - the MCD64A1 limits (500 m pixels, misses small fires);
    - EFFIS shares applied to clipped areas;
+   - the archive holds only detections inside the country, so a fire that crossed the border counts from its first sighting inside;
    - static sources and the 2026 exclusion.
 
 Downloads sit under Methods (D23).
@@ -190,8 +192,8 @@ Re-export by hand after each fire season and whenever EFFIS revises a year (D25)
 
 ## Files touched
 
-- **New:** `tools/fetch_landscape.py`, `web/src/pages/Landscape.tsx`, `web/src/lib/landscape.ts` (types, validator, CSV builders) with its test, and the three web files.
-- **Changed:** `tools/export_web_data.py` (`export_landscape()`), `web/public/data/catalog.json`, `web/src/App.tsx` (route and navigation), `web/src/pages/Explore.tsx` and `web/src/pages/Now.tsx` (layer toggles and legends), `firebase.json` (rewrite for `/landscape`), `web/src/pages/DataMethods.tsx` (CORINE, MCD64A1 and EFFIS rows), `README.md` (features and sources), `docs/website-spec.md` (screen entry), `PROJECT.md` (state and re-export routine).
+- **New:** `tools/landscape.py`, `tools/fetch_landscape.py`, `tools/fetch_mcd64a1.py`, `tests/test_landscape.py`, `web/src/lib/landscape.ts` with its test, `web/src/components/StackedBars.tsx`, `web/src/components/LandscapeLayers.tsx`, `web/src/pages/Landscape.tsx`, and the three web files.
+- **Changed:** `tools/export_web_data.py` (calls `landscape.export()`), `tools/firelib.py` (optional gap for the 48 h check), `web/scripts/check-dist.mjs` (allow `data/**/*.png`), `web/src/lib/history.ts` (export `csvCell`), `web/src/styles.css` (share bars), `web/public/data/catalog.json`, `web/src/App.tsx` (route and navigation), `web/src/pages/Explore.tsx` and `web/src/pages/Now.tsx` (layer toggles and legends), `firebase.json` (rewrite for `/landscape`), `web/src/pages/DataMethods.tsx` (CORINE, MCD64A1 and EFFIS rows), `README.md` (features and sources), `docs/website-spec.md` (screen entry), `PROJECT.md` (state and re-export routine).
 
 ## Risks and open points
 
@@ -200,7 +202,7 @@ Re-export by hand after each fire season and whenever EFFIS revises a year (D25)
 - The EFFIS code-to-field mapping in the groups table is inferred from field names. The build must confirm it against EFFIS documentation, and the Češinovo check guards it.
 - The footprint rectangle is the nominal pixel. Real VIIRS/MODIS footprints are not rectangles and overlap, which is good enough for shares but not for exact area. The page says so.
 - MCD64A1 misses small and short fires, so its farmland figures are a floor, not a total.
-- About 300 MCD64A1 granules need the Earthdata login. A failed or blocked download stops the export and is reported, never filled in.
+- The 300 MCD64A1 granules need a valid Earthdata bearer (they expire after 60 days). A failed or blocked download stops the fetch and is reported, never filled in.
 
 ## Next slices
 
