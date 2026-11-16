@@ -48,11 +48,31 @@ def check_features(features, field):
             raise ValueError(f"Unexpected CORINE feature: {str(f)[:120]}")
 
 
+def _base():
+    return {"where": "1=1", "geometry": ",".join(map(str, BBOX)), "geometryType": "esriGeometryEnvelope", "inSR": 4326,
+            "spatialRel": "esriSpatialRelIntersects"}
+
+
+def corine_url(edition):
+    """The query a CORINE edition is fetched with (paging and generalisation parameters are added per request)."""
+    return f"{EEA.format(year=edition)}?{urllib.parse.urlencode({**_base(), 'outFields': CORINE_FIELD[edition], 'f': 'geojson'})}"
+
+
+def reused(path, rel, edition, previous):
+    """A complete earlier CORINE download is kept as is, never rewritten, with the manifest entry that says where
+    and when it was fetched; a file that no longer matches its entry must be deleted and downloaded again."""
+    raw = path.read_bytes()
+    check_features(json.loads(raw)["features"], CORINE_FIELD[edition])
+    old = previous.get(rel)
+    if not old or old.get("sha256") != hashlib.sha256(raw).hexdigest() or "saved earlier" in old.get("url", ""):
+        raise ValueError(f"{rel} has no matching manifest entry; delete it to download it again")
+    return old
+
+
 def corine(edition):
     """All CORINE polygons touching the box, paged; ~30 m server-side generalisation (the grid is 100 m)."""
     field, url = CORINE_FIELD[edition], EEA.format(year=edition)
-    base = {"where": "1=1", "geometry": ",".join(map(str, BBOX)), "geometryType": "esriGeometryEnvelope", "inSR": 4326,
-            "spatialRel": "esriSpatialRelIntersects"}
+    base = _base()
     count = get_json(f"{url}?{urllib.parse.urlencode({**base, 'returnCountOnly': 'true', 'f': 'json'})}")["count"]
     features = []
     while len(features) < count:
@@ -66,7 +86,7 @@ def corine(edition):
         print(f"CORINE {edition}: {len(features)}/{count}", flush=True)
     if len(features) != count:
         raise ValueError(f"CORINE {edition}: {len(features)} features, expected {count}")
-    return {"type": "FeatureCollection", "features": features}, f"{url}?{urllib.parse.urlencode({**base, 'outFields': field, 'f': 'geojson'})}"
+    return {"type": "FeatureCollection", "features": features}, corine_url(edition)
 
 
 def effis():
@@ -104,15 +124,16 @@ def save(name, data, url):
 
 def main():
     DEST.mkdir(parents=True, exist_ok=True)
+    manifest = DEST / "manifest.json"
+    previous = {a["path"]: a for a in json.loads(manifest.read_text())["assets"]} if manifest.exists() else {}
     assets = []
     for e in EDITIONS:
         path = DEST / f"corine-{e}.geojson"
-        if path.exists():  # reuse a complete earlier download (written only after every page arrived)
-            data, url = json.loads(path.read_text()), f"{EEA.format(year=e)}?(saved earlier)"
-            check_features(data["features"], CORINE_FIELD[e])
+        if path.exists():  # a complete earlier download (written only after every page arrived)
+            assets.append(reused(path, str(path.relative_to(ROOT)), e, previous))
         else:
             data, url = corine(e)
-        assets.append({**save(f"corine-{e}.geojson", data, url), "features": len(data["features"])})
+            assets.append({**save(f"corine-{e}.geojson", data, url), "features": len(data["features"])})
     burned, fixed = effis()
     assets.append({**save("effis-burned-areas.geojson", burned, EFFIS_WFS), "features": len(burned["features"]),
                    "geometry_collections_reduced_to_polygons": fixed})

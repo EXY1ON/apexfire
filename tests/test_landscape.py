@@ -113,6 +113,24 @@ class FetchChecks(unittest.TestCase):
             with self.assertRaises(ValueError):
                 fl.check_features([bad], "Code_18")
 
+    def test_reused_corine_keeps_its_original_entry(self):
+        import hashlib
+        import json
+        import tempfile
+        import fetch_landscape as fl
+        poly = {"type": "Polygon", "coordinates": [[[21, 41], [21.1, 41], [21.1, 41.1], [21, 41]]]}
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "corine-2018.geojson"
+            path.write_bytes(json.dumps({"type": "FeatureCollection", "features": [{"properties": {"Code_18": "311"}, "geometry": poly}]}).encode())
+            digest = hashlib.sha256(path.read_bytes()).hexdigest()
+            entry = {"path": "corine-2018.geojson", "url": fl.corine_url(2018), "sha256": digest, "retrieved_utc": "2026-11-16T15:53Z"}
+            mtime = path.stat().st_mtime
+            self.assertEqual(fl.reused(path, "corine-2018.geojson", 2018, {"corine-2018.geojson": entry}), entry)
+            self.assertEqual(path.stat().st_mtime, mtime)  # never rewritten
+            with self.assertRaises(ValueError):
+                fl.reused(path, "corine-2018.geojson", 2018, {"corine-2018.geojson": {**entry, "sha256": "0" * 64}})
+        self.assertNotIn("saved earlier", fl.corine_url(2018))
+
     def test_effis_geometry_collection_keeps_its_polygons(self):
         import fetch_landscape as fl
         poly = [[[21, 41], [21.1, 41], [21.1, 41.1], [21, 41]]]
