@@ -76,9 +76,23 @@ def effis():
         raise ValueError("EFFIS returned no burned areas")
     if data.get("numberMatched") not in (None, len(feats)):
         raise ValueError(f"EFFIS query truncated: {len(feats)} of {data['numberMatched']}")
-    if any(f["geometry"]["type"] not in ("Polygon", "MultiPolygon") for f in feats):
-        raise ValueError("EFFIS returned a non-polygon burned area")
-    return data
+    fixed = [polygonal(f) for f in feats]
+    data["features"] = feats
+    return data, sum(fixed)
+
+
+def polygonal(feature):
+    """Keep only the polygon parts of an EFFIS GeometryCollection (seen once: a MultiPolygon plus a stray LineString).
+    Returns True when the geometry was changed; refuses a burned area with no polygon at all."""
+    g = feature.get("geometry") or {}
+    if g.get("type") in ("Polygon", "MultiPolygon"):
+        return False
+    parts = [q for q in g.get("geometries", []) if q.get("type") in ("Polygon", "MultiPolygon")] if g.get("type") == "GeometryCollection" else []
+    if not parts:
+        raise ValueError(f"EFFIS burned area {feature.get('properties', {}).get('id')} has no polygon")
+    rings = [c for q in parts for c in ([q["coordinates"]] if q["type"] == "Polygon" else q["coordinates"])]
+    feature["geometry"] = {"type": "MultiPolygon", "coordinates": rings}
+    return True
 
 
 def save(name, data, url):
@@ -92,10 +106,16 @@ def main():
     DEST.mkdir(parents=True, exist_ok=True)
     assets = []
     for e in EDITIONS:
-        data, url = corine(e)
+        path = DEST / f"corine-{e}.geojson"
+        if path.exists():  # reuse a complete earlier download (written only after every page arrived)
+            data, url = json.loads(path.read_text()), f"{EEA.format(year=e)}?(saved earlier)"
+            check_features(data["features"], CORINE_FIELD[e])
+        else:
+            data, url = corine(e)
         assets.append({**save(f"corine-{e}.geojson", data, url), "features": len(data["features"])})
-    burned = effis()
-    assets.append({**save("effis-burned-areas.geojson", burned, EFFIS_WFS), "features": len(burned["features"])})
+    burned, fixed = effis()
+    assets.append({**save("effis-burned-areas.geojson", burned, EFFIS_WFS), "features": len(burned["features"]),
+                   "geometry_collections_reduced_to_polygons": fixed})
     annual = get_json(EFFIS_ANNUAL)
     if not isinstance(annual, list) or not all({"year", "ba", "nf"} <= set(r) for r in annual):
         raise ValueError("Unexpected EFFIS annual estimates")

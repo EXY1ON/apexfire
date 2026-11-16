@@ -113,6 +113,16 @@ class FetchChecks(unittest.TestCase):
             with self.assertRaises(ValueError):
                 fl.check_features([bad], "Code_18")
 
+    def test_effis_geometry_collection_keeps_its_polygons(self):
+        import fetch_landscape as fl
+        poly = [[[21, 41], [21.1, 41], [21.1, 41.1], [21, 41]]]
+        f = {"properties": {"id": 1}, "geometry": {"type": "GeometryCollection", "geometries": [
+            {"type": "MultiPolygon", "coordinates": [poly]}, {"type": "LineString", "coordinates": [[21, 41], [21.2, 41.2]]}]}}
+        self.assertTrue(fl.polygonal(f))
+        self.assertEqual(f["geometry"], {"type": "MultiPolygon", "coordinates": [poly]})
+        with self.assertRaises(ValueError):
+            fl.polygonal({"properties": {"id": 2}, "geometry": {"type": "LineString", "coordinates": [[21, 41], [21.2, 41.2]]}})
+
 
 def box(w, s, e, n):
     return {"type": "Polygon", "coordinates": [[[w, s], [e, s], [e, n], [w, n], [w, s]]]}
