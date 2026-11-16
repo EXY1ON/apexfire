@@ -80,17 +80,17 @@ class Sinusoidal(unittest.TestCase):
 
 class Takeaways(unittest.TestCase):
     def test_templates_quote_the_numbers(self):
-        starts = np.zeros(10); starts[4], starts[5] = 60, 40
-        months = np.zeros((12, 10)); months[2, 5] = 7; months[7, 6] = 3
-        nasa = np.zeros(10); nasa[0], nasa[4] = 300, 100
+        starts = np.zeros(8); starts[4], starts[5] = 60, 40
+        months = np.zeros((12, 8)); months[2, 5] = 7; months[7, 6] = 3
+        nasa = np.zeros(8); nasa[0], nasa[4] = 300, 100
         t = ls.takeaways(starts, months, nasa, "VIIRS S-NPP", (2012, 2025), (2001, 2025))
         self.assertEqual(t[0]["text"], "Most fires start on grassland and pasture: 60% of the fire starts VIIRS S-NPP saw in 2012–2025.")
         self.assertIn("peak in March", t[1]["text"])
         self.assertEqual(t[2]["values"], {"group": "broadleaf", "pct": 75.0, "total_ha": 400})
 
     def test_no_majority_says_more_than_any_other(self):
-        starts = np.full(10, 10.0); starts[1] = 20
-        t = ls.takeaways(starts, np.ones((12, 10)), np.ones(10), "MODIS", (2001, 2025), (2001, 2025))
+        starts = np.full(8, 10.0); starts[1] = 20
+        t = ls.takeaways(starts, np.ones((12, 8)), np.ones(8), "MODIS", (2001, 2025), (2001, 2025))
         self.assertTrue(t[0]["text"].startswith("More fires start on conifer forest than on any other land:"))
 
 

@@ -792,6 +792,8 @@ def main():
     import harmonize  # reads the partitions just written; regenerated here because this export clears its folder
     harmonize.main()
     print(f"fire stories: {export_fire_stories()}")
+    import landscape  # What burns (/landscape): reads the partitions written above
+    print(f"landscape: {landscape.export(OUT, READY / 'landscape', ADDED / 'geoboundaries-mkd-adm0.geojson', OUT / 'history')}")
     write_catalog(history, places, cells, counts, weather)
     size = sum(p.stat().st_size for p in OUT.rglob("*") if p.is_file())
     print(f"exported {history['records']} detections ({history['archive_records']} archive) in {len(history['files'])} partitions, {places} places, "

@@ -7,18 +7,18 @@ function per<T>(f: (years: [number, number]) => T) {
 }
 function fixture(): Record<string, unknown> {
   const cls = (n: number) => Array.from({ length: n }, (_, i) => ({ id: `c${i}`, label: `Class ${i}`, color: '#000000', codes: [] }));
-  const v10 = Array<number>(10).fill(1); const v9 = Array<number>(9).fill(1);
+  const v8 = Array<number>(8).fill(1); const v7 = Array<number>(7).fill(1);
   return {
     schema: 'firewatch.landscape.v1', generated_utc: '2026-11-17T00:00:00+00:00', export_date: '2026-11-17',
-    groups: cls(10), fields: cls(9), editions: [2000, 2006, 2012, 2018], land: {},
+    groups: cls(8), fields: cls(7), raw_fields: cls(9), editions: [2000, 2006, 2012, 2018], land: {},
     starts: per((years) => ({ years, gap_hours: 24, total: 1, total_48h: 1, unclassified: 0, duration: {},
-      by_year_month_group: Array.from({ length: years[1] - years[0] + 1 }, () => ones(12, 10)) })),
-    activity: per((years) => ({ years, detections: 1, by_month_group: ones(12, 10) })),
-    nasa: { product: 'x', years: [2001, 2025], by_year_group: ones(25, 10), pixel_ha: 21.466, months: 300 },
-    effis: { years: [2016, 2026], to_date: '2026-11-17', all: { by_year_field: ones(11, 9), fires: [] }, ge30: { by_year_field: ones(11, 9), fires: [] },
+      by_year_month_group: Array.from({ length: years[1] - years[0] + 1 }, () => ones(12, 8)) })),
+    activity: per((years) => ({ years, detections: 1, by_month_group: ones(12, 8) })),
+    nasa: { product: 'x', years: [2001, 2025], by_year_group: ones(25, 8), pixel_ha: 21.466, months: 300 },
+    effis: { years: [2016, 2026], to_date: '2026-11-17', all: { by_year_field: ones(11, 7), fires: [] }, ge30: { by_year_field: ones(11, 7), fires: [] },
       cross_check: [], spread: {}, field_check: {} },
-    shares: { catches: per(() => v10), catches_land: per(() => v10), rates: per(() => v10),
-      consumes_nasa: v10, consumes_nasa_land: v10, consumes_effis: v9, consumes_effis_land: v9 },
+    shares: { catches: per(() => v8), catches_land: per(() => v8), rates: per(() => v8),
+      consumes_nasa: v8, consumes_nasa_land: v8, consumes_effis: v7, consumes_effis_land: v7 },
     takeaways: [{ id: 'starts', text: 'a', values: {} }, { id: 'farm_peak', text: 'b', values: {} }, { id: 'burned', text: 'c', values: {} }],
     image: { path: 'landscape/landcover-mk.png', corners: [[0, 1], [1, 1], [1, 0], [0, 0]], edition: 2018 }, credits: ['credit'],
   };
@@ -26,7 +26,7 @@ function fixture(): Record<string, unknown> {
 
 describe('landscape document', () => {
   it('accepts a well-formed document', () => {
-    expect(validateLandscape(fixture(), 'x').groups).toHaveLength(10);
+    expect(validateLandscape(fixture(), 'x').groups).toHaveLength(8);
   });
   it('rejects a NASA series that does not cover its years', () => {
     const d = fixture(); (d.nasa as { by_year_group: number[][] }).by_year_group.pop();
@@ -40,7 +40,7 @@ describe('landscape document', () => {
 
 describe('landscape helpers', () => {
   it('averages fire starts per month over the years', () => {
-    const y1 = ones(12, 10).map((r) => r.map(() => 0)); const y2 = ones(12, 10).map((r) => r.map(() => 0));
+    const y1 = ones(12, 8).map((r) => r.map(() => 0)); const y2 = ones(12, 8).map((r) => r.map(() => 0));
     y1[0][0] = 2; y2[0][0] = 4;
     expect(monthlyAverage({ years: [2024, 2025], by_year_month_group: [y1, y2] } as unknown as Starts)[0][0]).toBe(3);
   });

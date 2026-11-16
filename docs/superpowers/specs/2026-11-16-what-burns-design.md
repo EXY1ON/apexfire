@@ -1,6 +1,6 @@
 # What burns in North Macedonia — design (slice 1 of 4)
 
-16 Nov 2026 · Status: **approved by SAI (25 grilling decisions + D26)** · Builder: Claude · Reviewer: Codex · Sources: [nature data survey](../../research/nature-data-sources-2026-11-16.md)
+16 Nov 2026 · Status: **approved by SAI (25 grilling decisions + D26–D27)** · Builder: Claude · Reviewer: Codex · Sources: [nature data survey](../../research/nature-data-sources-2026-11-16.md)
 
 ## Goal
 
@@ -16,7 +16,7 @@ Done when `/landscape` shows all three from exported, validated data, both map l
 
 ## Decisions
 
-Agreed with SAI in three grilling rounds on 16 Nov 2026 (D1–D25) and while planning (D26). Sections below implement them; a change to any of these reopens the design.
+Agreed with SAI in three grilling rounds on 16 Nov 2026 (D1–D25), while planning (D26) and while building (D27). Sections below implement them; a change to any of these reopens the design.
 
 | # | Decision |
 | --- | --- |
@@ -46,6 +46,7 @@ Agreed with SAI in three grilling rounds on 16 Nov 2026 (D1–D25) and while pla
 | D24 | Only North Macedonia crops of the MCD64A1 granules are kept, with each granule ID and SHA-256; full tiles are deleted after cropping and can be re-downloaded by ID. |
 | D25 | The export is re-run by hand after each fire season and whenever EFFIS revises a year; the routine is recorded in PROJECT.md; no scheduled job. |
 | D26 | MCD64A1 comes from NASA LP DAAC for all 300 months (Planetary Computer lacks Sep 2023, Jul 2024, May and Aug–Oct 2025). The HDF4 files are read with pyhdf (MIT) in `tools/fetch_mcd64a1.py`, run by `uv run --python 3.14` with its dependencies declared in the script; the project `.venv` is unchanged. |
+| D27 | Charts use **eight** validated groups instead of ten (amends D8): the ten colours failed the dataviz checks and the method caps a chart at eight. Sparse/bare/burnt, urban and water fold into a grey "Other land"; EFFIS charts fold sclerophyll + transitional into one shrubland series and artificial + water into "Other". Colours (dark mode, all checks pass, worst adjacent colour-blind ΔE 9.4): broadleaf #0ca30c, conifer #3987e5, mixed #199e70, shrub #d95926, grassland #9085e9, arable #c98500, orchards #d55181, other #7d7c76. Per-fire EFFIS shares keep all nine EFFIS fields; the Expert table keeps every CORINE code; the map image uses the same eight colours. |
 
 ## Sources
 
@@ -61,22 +62,20 @@ Static sources are a large share of the archive (type 2: 8,307 of 18,544 MODIS a
 
 ## Land-cover groups
 
-Ten groups from the 44 CORINE codes (D8). The export asserts that every code present in the MK clips maps to exactly one group and one EFFIS field.
+Eight chart groups from the 44 CORINE codes (D8 as amended by D27). The export asserts that every code present in the MK clips maps to exactly one group and one charted EFFIS field.
 
-| Group | CORINE codes | EFFIS field for the same codes (inferred from EFFIS field names; verify against EFFIS documentation during build) |
+| Group | CORINE codes | Charted EFFIS field for the same codes (inferred from EFFIS field names; checked against EFFIS's own shares during export) |
 | --- | --- | --- |
-| Broadleaf forest | 311 | broadleaf |
-| Conifer forest | 312 | conifer |
-| Mixed forest | 313 | mixed |
-| Shrubland and young woodland | 322, 323, 324 | 322 other_natural · 323 sclerophyll · 324 transitional |
-| Grassland and pasture | 231, 321 | 231 agricultural · 321 other_natural |
-| Arable land | 211, 212, 213 | agricultural |
+| Broadleaf forest | 311 | broadleaf (BROADLEA) |
+| Conifer forest | 312 | conifer (CONIFER) |
+| Mixed forest | 313 | mixed (MIXED) |
+| Shrubland and young woodland | 322, 323, 324 | 322 other natural · 323, 324 shrubland (SCLEROPH + TRANSIT) |
+| Grassland and pasture | 231, 321 | 231 agricultural · 321 other natural |
+| Arable land | 211, 212, 213 | agricultural (AGRIAREAS) |
 | Orchards, vineyards and mixed farming | 221, 222, 223, 241, 242, 243, 244 | agricultural |
-| Sparse, bare and burnt | 331, 332, 333, 334, 335 | other_natural |
-| Urban and industrial | 1xx | artificial |
-| Water and wetland | 4xx, 5xx | other |
+| Other land (bare, urban, water) | 331–335, 1xx, 4xx, 5xx | 331–335 other natural · 1xx, 4xx, 5xx other (ARTIFSURF + OTHERLC) |
 
-EFFIS charts keep EFFIS's own nine fields, never re-split; their land shares for D10 are computed from the code-to-field column.
+EFFIS charts use the seven charted fields; their land shares for D10 come from the code-to-field column. Each burned area keeps EFFIS's own nine shares for the tap details.
 
 ## Data pipeline
 

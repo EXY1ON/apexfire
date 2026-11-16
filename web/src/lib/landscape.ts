@@ -1,5 +1,5 @@
 // What burns in North Macedonia (/landscape): types, validation and helpers for landscape/what-burns.json,
-// built by tools/landscape.py. Arrays follow the order of `groups` (10) or `fields` (9).
+// built by tools/landscape.py. Arrays follow the order of `groups` (8) or `fields` (7).
 import { fail, validateDoc } from './data';
 import { csvCell } from './history';
 
@@ -16,7 +16,7 @@ export interface Activity { years: [number, number]; detections: number; by_mont
 export interface EffisSeries { by_year_field: number[][]; fires: number[] }
 export interface LandscapeDoc {
   schema: 'firewatch.landscape.v1'; generated_utc: string; export_date: string;
-  groups: LcClass[]; fields: LcClass[]; editions: number[];
+  groups: LcClass[]; fields: LcClass[]; raw_fields: { id: string; label: string }[]; editions: number[];
   land: Record<string, { area_km2: number; groups: number[]; fields: number[]; codes: Record<string, number> }>;
   starts: Record<StartSensor, Starts>; activity: Record<StartSensor, Activity>;
   nasa: { product: string; years: [number, number]; by_year_group: number[][]; pixel_ha: number; months: number };
@@ -39,9 +39,9 @@ export const yearsOf = ([a, b]: [number, number]) => Array.from({ length: b - a 
 
 /** Shape checks for every array the page draws; a mismatch is an error, never a partly drawn chart. */
 export function validateLandscape(raw: unknown, path: string): LandscapeDoc {
-  const d = validateDoc<LandscapeDoc>('firewatch.landscape.v1', ['groups', 'fields', 'starts', 'activity', 'nasa', 'effis', 'shares', 'takeaways', 'image', 'credits'])(raw, path);
+  const d = validateDoc<LandscapeDoc>('firewatch.landscape.v1', ['groups', 'fields', 'raw_fields', 'starts', 'activity', 'nasa', 'effis', 'shares', 'takeaways', 'image', 'credits'])(raw, path);
   const G = d.groups.length; const F = d.fields.length;
-  if (G !== 10 || F !== 9) fail(path, 'expected 10 land-cover groups and 9 EFFIS fields');
+  if (G !== 8 || F !== 7 || d.raw_fields.length !== 9) fail(path, 'expected 8 land-cover groups, 7 charted and 9 raw EFFIS fields');
   const matrix = (m: unknown, rows: number, cols: number, what: string) => {
     if (!Array.isArray(m) || m.length !== rows || m.some((r) => !Array.isArray(r) || r.length !== cols || r.some((v) => !Number.isFinite(v)))) fail(path, `${what} has the wrong shape`);
   };
