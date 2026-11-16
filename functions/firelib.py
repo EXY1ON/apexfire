@@ -22,8 +22,8 @@ def _hours(t):
     return datetime.fromisoformat(t.replace("Z", "+00:00")).timestamp() / 3600
 
 
-def cluster(dets):
-    """dets: dicts with lat, lon, t (ISO UTC), frp, sensor, id. Returns lists of member indices."""
+def cluster(dets, gap_hours=LINK_HOURS):
+    """dets: dicts with lat, lon, t (ISO UTC), frp, sensor, id. Returns lists of member indices; gap_hours defaults to the site rule."""
     n = len(dets)
     parent = list(range(n))
 
@@ -41,7 +41,7 @@ def cluster(dets):
         near = [j for dy in (-1, 0, 1) for dx in (-1, 0, 1) for j in cell.get((cy + dy, cx + dx), [])]
         for i in members:
             for j in near:
-                if j > i and abs(hours[i] - hours[j]) <= LINK_HOURS and km(dets[i]["lat"], dets[i]["lon"], dets[j]["lat"], dets[j]["lon"]) <= LINK_KM:
+                if j > i and abs(hours[i] - hours[j]) <= gap_hours and km(dets[i]["lat"], dets[i]["lon"], dets[j]["lat"], dets[j]["lon"]) <= LINK_KM:
                     parent[find(i)] = find(j)
     groups = {}
     for i in range(n):
