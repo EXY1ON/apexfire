@@ -35,6 +35,25 @@ class GeneratedData(unittest.TestCase):
             self.assertEqual(f["source_sha256"], inv["sha256"])
             self.assertEqual(f["records"], int(inv["records"]))
 
+    def test_landscape(self):
+        land = OUT / "landscape"
+        doc = json.loads((land / "what-burns.json").read_text())
+        self.assertEqual(doc["schema"], "firewatch.landscape.v1")
+        self.assertEqual({s: v["years"] for s, v in doc["starts"].items()},
+                         {"viirs-snpp": [2012, 2025], "modis": [2001, 2025], "viirs-jpss1": [2018, 2025]})
+        self.assertEqual((doc["nasa"]["years"], len(doc["nasa"]["by_year_group"]), doc["nasa"]["months"]), ([2001, 2025], 25, 300))
+        self.assertEqual(doc["effis"]["years"][0], 2016)
+        row = next(r for r in doc["effis"]["cross_check"] if r["year"] == 2025)
+        self.assertEqual((row["fires"], row["ha"]), (82, 31338))  # EFFIS's own 2025 statistics, verified 16 Nov 2026
+        burned = json.loads((land / "burned-areas.geojson").read_text())
+        story = json.loads((OUT / "stories" / "fires" / "cesinovo-2016.json").read_text())
+        ces = next(f for f in burned["features"] if f["properties"]["id"] == "10145")
+        self.assertEqual(ces["properties"]["agricultural"], story["official"]["landcover_pct"]["agricultural"])
+        self.assertEqual(ces["properties"]["agricultural"], 77.4)
+        for name, limit in {"what-burns.json": 200_000, "landcover-mk.png": 700_000, "burned-areas.geojson": 1_500_000}.items():
+            self.assertLessEqual((land / name).stat().st_size, limit, name)
+        self.assertEqual(len(doc["takeaways"]), 3)
+
     def test_fire_stories(self):
         fires = OUT / "stories" / "fires"
         index = json.loads((fires / "index.json").read_text())
@@ -64,11 +83,11 @@ class GeneratedData(unittest.TestCase):
                 self.assertLess((fires / f"{e['id']}.json").stat().st_size, 400_000)
 
     def test_public_output_has_no_private_material(self):
-        allowed = {".json", ".geojson", ".jpg", ".txt"}
+        allowed = {".json", ".geojson", ".jpg", ".png", ".txt"}
         for p in OUT.rglob("*"):
             if p.is_file():
                 self.assertIn(p.suffix, allowed, p)
-                if p.suffix != ".jpg":
+                if p.suffix not in (".jpg", ".png"):
                     text = p.read_text(encoding="utf-8")
                     self.assertNotIn("Token-and-key", text)
                     self.assertNotIn("/Users/", text)
